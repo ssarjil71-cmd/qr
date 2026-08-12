@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-10">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="mb-1">Profile Details</h3>
+        <p class="text-muted">Fill only the forms for the profiles you selected.</p>
+        <form method="post" class="row g-4">
+          {% for profile in selected_profiles %}
+          {% set data = existing_data.get(profile, {}) %}
+          <div class="col-12">
+            <div class="border rounded p-3">
+              <h5 class="mb-3">{{ profile_labels[profile] }}</h5>
+
+              {% if profile == 'student' %}
+              <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">College</label><input class="form-control" name="student_college" value="{{ data.get('college', '') }}"></div>
+                <div class="col-md-6"><label class="form-label">Branch</label><input class="form-control" name="student_branch" value="{{ data.get('branch', '') }}"></div>
+                <div class="col-md-6"><label class="form-label">Year</label><input class="form-control" name="student_year" value="{{ data.get('year', '') }}"></div>
+                <div class="col-md-6"><label class="form-label">Roll Number</label><input class="form-control" name="student_roll_number" value="{{ data.get('roll_number', '') }}"></div>
+              </div>
+              {% elif profile == 'employee' %}
+              <div class="row g-3">
+                <div class="col-md-4"><label class="form-label">Company</label><input class="form-control" name="employee_company" value="{{ data.get('company', '') }}"></div>
+                <div class="col-md-4"><label class="form-label">Designation</label><input class="form-control" name="employee_designation" value="{{ data.get('designation', '') }}"></div>
+                <div class="col-md-4"><label class="form-label">Experience</label><input class="form-control" name="employee_experience" value="{{ data.get('experience', '') }}"></div>
+              </div>
+              {% elif profile == 'intern' %}
+              <div class="row g-3">
+                <div class="col-md-4"><label class="form-label">Company</label><input class="form-control" name="intern_company" value="{{ data.get('company', '') }}"></div>
+                <div class="col-md-4"><label class="form-label">Department</label><input class="form-control" name="intern_department" value="{{ data.get('department', '') }}"></div>
+                <div class="col-md-4"><label class="form-label">Duration</label><input class="form-control" name="intern_duration" value="{{ data.get('duration', '') }}"></div>
+              </div>
+              {% elif profile == 'freelancer' %}
+              <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Profession</label><input class="form-control" name="freelancer_profession" value="{{ data.get('profession', '') }}"></div>
+                <div class="col-md-6"><label class="form-label">Portfolio Link</label><input class="form-control" name="freelancer_portfolio_link" value="{{ data.get('portfolio_link', '') }}"></div>
+              </div>
+              {% elif profile == 'business_owner' %}
+              <div class="row g-3">
+                <div class="col-md-4"><label class="form-label">Business Name</label><input class="form-control" name="business_owner_business_name" value="{{ data.get('business_name', '') }}"></div>
+                <div class="col-md-4"><label class="form-label">Business Type</label><input class="form-control" name="business_owner_business_type" value="{{ data.get('business_type', '') }}"></div>
+                <div class="col-md-4"><label class="form-label">Website</label><input class="form-control" name="business_owner_website" value="{{ data.get('website', '') }}"></div>
+              </div>
+              {% elif profile == 'emergency' %}
+              <div class="row g-3">
+                <div class="col-md-4"><label class="form-label">Blood Group</label><input class="form-control" name="emergency_blood_group" value="{{ data.get('blood_group', '') }}"></div>
+                <div class="col-md-4"><label class="form-label">Emergency Contact</label><input class="form-control" name="emergency_contact" value="{{ data.get('emergency_contact', '') }}"></div>
+                <div class="col-md-4"><label class="form-label">Medical Notes</label><input class="form-control" name="emergency_medical_notes" value="{{ data.get('medical_notes', '') }}"></div>
+              </div>
+              {% elif profile == 'visitor' %}
+              <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Visit Purpose</label><input class="form-control" name="visitor_visit_purpose" value="{{ data.get('visit_purpose', '') }}"></div>
+                <div class="col-md-6"><label class="form-label">Host Name</label><input class="form-control" name="visitor_host_name" value="{{ data.get('host_name', '') }}"></div>
+              </div>
+              {% elif profile == 'citizen' %}
+              <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">City</label><input class="form-control" name="citizen_city" value="{{ data.get('city', '') }}"></div>
+                <div class="col-md-6"><label class="form-label">Occupation</label><input class="form-control" name="citizen_occupation" value="{{ data.get('occupation', '') }}"></div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+
+          <div class="col-12 d-flex justify-content-between">
+            <a class="btn btn-outline-secondary" href="{{ url_for('auth.choose_profiles') }}">Back</a>
+            <button class="btn btn-success" type="submit">Save Details</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'admin/layout.html' %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="mb-1">QR Cards</h3>
+    <p class="text-muted mb-0">{{ org_context.organization_name }}</p>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>User ID</th>
+            <th>User</th>
+            <th>Email</th>
+            <th>Type</th>
+            <th>QR Token</th>
+            <th>QR Path</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in qr_rows %}
+          <tr>
+            <td>{{ display_code(row[0]) }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ row[2] or '-' }}</td>
+            <td>{{ row[3] }}</td>
+            <td>{{ row[4] or '-' }}</td>
+            <td>{{ row[5] or '-' }}</td>
+            <td><a class="btn btn-sm btn-secondary" href="{{ url_for('admin.generate_user_qr', uid=row[0]) }}">Generate QR</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center text-muted py-4">No users found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

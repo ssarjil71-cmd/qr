@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center py-3">
+  <div class="col-lg-5">
+    <div class="auth-card p-4 p-lg-5">
+      <h3 class="fw-bold mb-2">Verify Your Mobile</h3>
+      <p class="text-muted mb-4">Enter the OTP sent to your mobile number.</p>
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">OTP</label>
+          <input class="form-control" name="otp" required>
+        </div>
+        <button class="btn btn-primary w-100" type="submit">Verify</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

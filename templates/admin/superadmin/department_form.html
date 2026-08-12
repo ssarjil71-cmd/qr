@@ -1,0 +1,63 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  /* Enterprise Form Page */
+  .enterprise-page { display: grid; gap: 24px; }
+  .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
+  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+  .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
+  .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
+  .enterprise-btn-primary { border-color: var(--primary-color); background: var(--primary-color); color: #fff; }
+  .enterprise-btn-primary:hover { border-color: var(--primary-hover); background: var(--primary-hover); color: #fff; }
+  .form-shell { overflow: hidden; border: 1px solid var(--border-color); border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .form-section { padding: 24px; }
+  .section-title { margin: 0 0 4px; color: var(--text-primary); font-size: 20px; font-weight: 800; }
+  .section-text { margin: 0 0 20px; color: var(--text-secondary); font-size: 14px; }
+  .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .form-floating > .form-control { min-height: 56px; border-color: var(--border-color); border-radius: 12px; box-shadow: none; }
+  .form-floating > .form-control:focus { border-color: rgba(37, 99, 235, .45); box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+  .required-mark { color: #EF4444; }
+  .form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 20px 24px; border-top: 1px solid #EEF2F7; background: #FCFCFD; }
+  @media (max-width: 992px) { .form-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 768px) { .enterprise-header { align-items: flex-start; flex-direction: column; } .enterprise-title { font-size: 30px; } .form-section { padding: 16px; } .form-actions { justify-content: stretch; } .form-actions .btn { width: 100%; } }
+</style>
+
+<div class="enterprise-page">
+  <!-- Page Header -->
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">Create Department</h1>
+      <p class="enterprise-subtitle">Add a department within the selected branch hierarchy.</p>
+    </div>
+  </div>
+
+  <!-- Department Form -->
+  <form method="post" class="form-shell">
+    <div class="form-section">
+      <h2 class="section-title">Department Information</h2>
+      <p class="section-text">Assign an optional manager user ID if the department already has an owner.</p>
+      <div class="form-grid">
+        <div class="form-floating">
+          <input class="form-control" id="departmentName" name="name" placeholder="Name" required>
+          <label for="departmentName">Name <span class="required-mark">*</span></label>
+          <div class="invalid-feedback">Department name is required.</div>
+        </div>
+        <div class="form-floating">
+          <input class="form-control" id="departmentCode" name="code" placeholder="Code">
+          <label for="departmentCode">Code</label>
+        </div>
+        <div class="form-floating">
+          <input class="form-control" id="managerUserId" name="manager_user_id" placeholder="Manager User ID">
+          <label for="managerUserId">Manager User ID (optional)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button class="btn enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-check2 me-2"></i>Create Department</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

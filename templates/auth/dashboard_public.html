@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="py-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Welcome, {{ user[2] or 'User' }}</h2>
+      <p class="text-muted mb-0">Complete your profile to unlock secure QR card features for your public identity.</p>
+    </div>
+    {% if session.get('user_id') %}
+    <a class="btn btn-outline-primary" href="{{ url_for('auth.logout') }}">Logout</a>
+    {% endif %}
+  </div>
+
+  {% if profile_complete %}
+  <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    <div>Congratulations! Your profile is complete. QR generation is now available.</div>
+  </div>
+  {% endif %}
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-7">
+      <div class="hero-card p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">Profile Completion</h5>
+          <span class="fw-bold text-primary">{{ profile_completion }}%</span>
+        </div>
+        <div class="progress mb-4">
+          <div class="progress-bar bg-primary" role="progressbar" style="width: {{ profile_completion }}%"></div>
+        </div>
+        <div class="row g-3">
+          {% for item in checklist %}
+          <div class="col-md-6">
+            <div class="border rounded p-3 d-flex justify-content-between align-items-start gap-3">
+              <div>
+                <div class="fw-semibold">{{ item.label }}</div>
+                <div class="text-muted small">{{ item.detail }}</div>
+              </div>
+              <div class="d-flex flex-column align-items-end gap-2">
+                {% if item.done %}
+                <span class="badge bg-success-subtle text-success">Completed</span>
+                {% else %}
+                <span class="badge bg-warning-subtle text-warning">Pending</span>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ item.view_url }}">View</a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      {% if not profile_complete %}
+      <div class="hero-card p-4 h-100">
+        <h5 class="fw-bold mb-2">Complete Profile</h5>
+        <p class="text-muted mb-3">Your QR card is locked. Complete your profile to unlock QR generation and sharing.</p>
+        {% if session.get('user_id') %}
+        <a class="btn btn-primary" href="{{ url_for('auth.complete_profile') }}">Complete Profile</a>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="hero-card p-4 h-100">
+        <h5 class="fw-bold mb-2">QR Features Ready</h5>
+        <p class="text-muted mb-3">Your account is fully set up. You can now generate and manage your QR card.</p>
+        {% if session.get('user_id') %}
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-primary" href="{{ url_for('auth.generate_qr') }}">Generate QR</a>
+          <a class="btn btn-outline-primary" href="{{ url_for('auth.qr_view') }}">View QR</a>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    {% if not profile_complete %}
+    <div class="col-12">
+      <div class="hero-card p-4">
+        <h5 class="fw-bold mb-3">Locked Features</h5>
+        <div class="row g-3">
+          {% for feature in ['Generate QR', 'My QR Card', 'Download QR', 'Print QR', 'Share QR'] %}
+          <div class="col-md-4 col-lg-2">
+            <div class="border rounded p-3 text-center">
+              <i class="bi bi-lock-fill text-warning mb-2"></i>
+              <div class="fw-semibold">{{ feature }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-md-6 col-xl-3">
+      <div class="hero-card p-4 h-100">
+        <div class="fw-semibold mb-2">Generate QR</div>
+        <div class="text-muted small">Create a fresh QR card instantly.</div>
+        <a class="btn btn-primary mt-3" href="{{ url_for('auth.generate_qr') }}">Generate QR</a>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="hero-card p-4 h-100">
+        <div class="fw-semibold mb-2">My QR Card</div>
+        <div class="text-muted small">View and manage your existing QR.</div>
+        <a class="btn btn-outline-primary mt-3" href="{{ url_for('auth.qr_view') }}">Open QR</a>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="hero-card p-4 h-100">
+        <div class="fw-semibold mb-2">Download QR</div>
+        <div class="text-muted small">Save your QR card as PNG or PDF.</div>
+        <div class="d-flex gap-2 mt-3">
+          <a class="btn btn-outline-primary btn-sm" href="{{ url_for('auth.download_png') }}">PNG</a>
+          <a class="btn btn-outline-primary btn-sm" href="{{ url_for('auth.download_pdf') }}">PDF</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="hero-card p-4 h-100">
+        <div class="fw-semibold mb-2">Print QR</div>
+        <div class="text-muted small">Print your QR card directly.</div>
+        <a class="btn btn-outline-secondary mt-3" href="javascript:window.print()">Print</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

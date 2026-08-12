@@ -1,0 +1,168 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  /* Enterprise Detail Page */
+  .enterprise-page { display: grid; gap: 24px; }
+  .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
+  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+  .enterprise-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
+  .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
+  .enterprise-btn-primary { border-color: var(--primary-color); background: var(--primary-color); color: #fff; }
+  .enterprise-btn-primary:hover { border-color: var(--primary-hover); background: var(--primary-hover); color: #fff; }
+  .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .enterprise-card { padding: 24px; border: 1px solid var(--border-color); border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .card-title { margin: 0 0 18px; color: var(--text-primary); font-size: 20px; font-weight: 800; }
+  .info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .info-item { padding: 14px; border: 1px solid #EEF2F7; border-radius: 14px; background: #FCFCFD; }
+  .info-label { margin-bottom: 6px; color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .info-value { color: var(--text-primary); font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+  .badge-active { background: rgba(16, 185, 129, .12); color: #047857; }
+  .badge-inactive { background: #F1F5F9; color: #475569; }
+  .admin-avatar { width: 48px; height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #EFF6FF; color: var(--primary-color); font-weight: 800; }
+  .admin-row { display: flex; align-items: center; gap: 12px; }
+  .data-grid-card { overflow: hidden; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .data-grid-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border-color); }
+  .premium-table-wrap { overflow: auto; }
+  .premium-table { min-width: 880px; margin: 0; color: var(--text-primary); font-size: 14px; }
+  .premium-table thead th { position: sticky; top: 0; z-index: 2; height: 48px; padding: 0 16px; border-bottom: 1px solid var(--border-color); background: #F1F5F9; color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .premium-table tbody tr { height: 56px; border-bottom: 1px solid #EEF2F7; transition: var(--transition-fast); }
+  .premium-table tbody tr:nth-child(even) { background: #FCFCFD; }
+  .premium-table tbody tr:hover { background: #EFF6FF; }
+  .premium-table td { padding: 12px 16px; vertical-align: middle; }
+  .entity-cell { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+  .entity-avatar { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 38px; border-radius: 999px; background: #EFF6FF; color: var(--primary-color); font-weight: 800; }
+  .entity-name { font-weight: 800; }
+  .entity-meta { color: var(--text-secondary); font-size: 13px; }
+  .empty-state { display: grid; place-items: center; gap: 12px; padding: 56px 24px; text-align: center; }
+  .empty-state-icon { width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; background: #EFF6FF; color: var(--primary-color); font-size: 28px; }
+  @media (max-width: 1100px) { .detail-grid { grid-template-columns: 1fr; } .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 768px) { .enterprise-header, .data-grid-header { align-items: flex-start; flex-direction: column; } .enterprise-title { font-size: 30px; } .info-grid { grid-template-columns: 1fr; } .enterprise-card { padding: 16px; } }
+</style>
+
+<div class="enterprise-page">
+  <!-- Page Header -->
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">{{ org.name }}</h1>
+      <p class="enterprise-subtitle">Organization details, primary admin, and branch hierarchy.</p>
+    </div>
+    <div class="enterprise-actions">
+      <a class="btn enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.organization_edit', org_id=org.id) }}"><i class="bi bi-pencil me-2"></i>Edit</a>
+      <a class="btn enterprise-btn" href="{{ url_for('superadmin.organizations_list') }}"><i class="bi bi-arrow-left me-2"></i>Back</a>
+    </div>
+  </div>
+
+  <!-- Organization Details -->
+  <div class="detail-grid">
+    <div class="enterprise-card">
+      <h2 class="card-title">Organization Information</h2>
+      <div class="info-grid">
+        <div class="info-item"><div class="info-label">Organization Name</div><div class="info-value">{{ org.name }}</div></div>
+        <div class="info-item"><div class="info-label">Type</div><div class="info-value">{{ org.organization_type_label }}</div></div>
+        <div class="info-item">
+          <div class="info-label">Status</div>
+          <div class="info-value">
+            <span class="status-badge {% if org.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}">
+              <i class="bi {% if org.status == 'active' %}bi-check-circle{% else %}bi-dash-circle{% endif %}"></i>{{ org.status|title }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item"><div class="info-label">Contact Person</div><div class="info-value">{{ org.contact_person or '-' }}</div></div>
+        <div class="info-item"><div class="info-label">Mobile</div><div class="info-value">{{ org.mobile or '-' }}</div></div>
+        <div class="info-item"><div class="info-label">Email</div><div class="info-value">{{ org.email or '-' }}</div></div>
+        <div class="info-item"><div class="info-label">City</div><div class="info-value">{{ org.city or '-' }}</div></div>
+        <div class="info-item"><div class="info-label">State</div><div class="info-value">{{ org.state or '-' }}</div></div>
+        <div class="info-item"><div class="info-label">UUID</div><div class="info-value">{{ org.uuid }}</div></div>
+        <div class="info-item" style="grid-column: 1 / -1;"><div class="info-label">Address</div><div class="info-value">{{ org.address or '-' }}</div></div>
+      </div>
+    </div>
+
+    <!-- Primary Admin -->
+    <div class="enterprise-card">
+      <h2 class="card-title">Primary Organization Admin</h2>
+      {% if primary_admin %}
+      <div class="admin-row">
+        <span class="admin-avatar">{{ primary_admin[1][:1] if primary_admin[1] else 'A' }}</span>
+        <div>
+          <div class="info-value">{{ primary_admin[1] }}</div>
+          <div class="entity-meta">{{ primary_admin[2] or '-' }}</div>
+          <div class="entity-meta">{{ primary_admin[3] or '-' }}</div>
+        </div>
+      </div>
+      {% else %}
+      <p class="enterprise-subtitle mb-3">No Organization Admin assigned yet.</p>
+      <a class="btn enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.organization_admin_create', org_id=org.id) }}"><i class="bi bi-person-plus me-2"></i>Create Organization Admin</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Branches -->
+  <div class="data-grid-card">
+    <div class="data-grid-header">
+      <div>
+        <h2 class="card-title mb-1">Branches</h2>
+        <p class="enterprise-subtitle mb-0">Branch, department, and division summary for this organization.</p>
+      </div>
+      <a class="btn enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.branch_create', org_id=org.id) }}"><i class="bi bi-plus-lg me-2"></i>Create Branch</a>
+    </div>
+    {% if branches %}
+    <div class="premium-table-wrap">
+      <table class="table premium-table align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Code</th>
+            <th>City</th>
+            <th>Departments</th>
+            <th>Divisions</th>
+            <th>Active</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for branch in branches %}
+          <tr>
+            <td>{{ branch.id }}</td>
+            <td>
+              <div class="entity-cell">
+                <span class="entity-avatar">{{ branch.name[:1] if branch.name else 'B' }}</span>
+                <div>
+                  <div class="entity-name">{{ branch.name }}</div>
+                  <div class="entity-meta">{{ branch.city or '-' }}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ branch.code or '-' }}</td>
+            <td>{{ branch.city or '-' }}</td>
+            <td>{{ branch.department_count }}</td>
+            <td>{{ branch.division_count }}</td>
+            <td>
+              <span class="status-badge {% if branch.is_active %}badge-active{% else %}badge-inactive{% endif %}">
+                <i class="bi {% if branch.is_active %}bi-check-circle{% else %}bi-dash-circle{% endif %}"></i>{{ 'Active' if branch.is_active else 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <a class="btn enterprise-btn" href="{{ url_for('superadmin.department_create', branch_id=branch.id) }}"><i class="bi bi-plus-lg me-2"></i>Add Department</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-diagram-3"></i></div>
+      <div>
+        <h3 class="h5 fw-bold mb-1">No branches found</h3>
+        <p class="text-muted mb-0">Create a branch to start building this organization hierarchy.</p>
+      </div>
+      <a class="btn enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.branch_create', org_id=org.id) }}"><i class="bi bi-plus-lg me-2"></i>Create Branch</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

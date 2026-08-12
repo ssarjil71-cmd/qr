@@ -1,0 +1,119 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  /* Enterprise Form Page */
+  .enterprise-page { display: grid; gap: 24px; }
+  .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
+  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+  .enterprise-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
+  .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
+  .enterprise-btn-primary { border-color: var(--primary-color); background: var(--primary-color); color: #fff; }
+  .enterprise-btn-primary:hover { border-color: var(--primary-hover); background: var(--primary-hover); color: #fff; }
+  .form-shell { overflow: hidden; border: 1px solid var(--border-color); border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .form-section { padding: 24px; border-bottom: 1px solid #EEF2F7; }
+  .form-section:last-child { border-bottom: 0; }
+  .section-title { margin: 0 0 4px; color: var(--text-primary); font-size: 20px; font-weight: 800; }
+  .section-text { margin: 0 0 20px; color: var(--text-secondary); font-size: 14px; }
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .form-grid-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-full { grid-column: 1 / -1; }
+  .form-floating > .form-control, .form-floating > .form-select { min-height: 56px; border-color: var(--border-color); border-radius: 12px; box-shadow: none; }
+  .form-floating > textarea.form-control { min-height: 120px; }
+  .form-floating > .form-control:focus, .form-floating > .form-select:focus { border-color: rgba(37, 99, 235, .45); box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+  .required-mark { color: #EF4444; }
+  .form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 20px 24px; background: #FCFCFD; }
+  @media (max-width: 992px) { .form-grid, .form-grid-three { grid-template-columns: 1fr; } }
+  @media (max-width: 768px) { .enterprise-header { align-items: flex-start; flex-direction: column; } .enterprise-title { font-size: 30px; } .form-section { padding: 16px; } .form-actions { justify-content: stretch; } .form-actions .btn { width: 100%; } }
+</style>
+
+<div class="enterprise-page">
+  <!-- Page Header -->
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">{% if org %}Edit{% else %}Create{% endif %} Organization</h1>
+      <p class="enterprise-subtitle">Capture organization identity, contact details, location, and platform status.</p>
+    </div>
+    <div class="enterprise-actions">
+      <a class="btn enterprise-btn" href="{{ url_for('superadmin.organizations_list') }}"><i class="bi bi-arrow-left me-2"></i>Back</a>
+    </div>
+  </div>
+
+  <!-- Organization Form -->
+  <form method="post" class="form-shell">
+    <div class="form-section">
+      <h2 class="section-title">Organization Details</h2>
+      <p class="section-text">Required fields are marked with a red indicator.</p>
+      <div class="form-grid">
+        <div class="form-floating">
+          <input class="form-control" id="organizationName" name="name" placeholder="Organization Name" value="{{ org.name if org else '' }}" required>
+          <label for="organizationName">Organization Name <span class="required-mark">*</span></label>
+          <div class="invalid-feedback">Organization name is required.</div>
+        </div>
+        <div class="form-floating">
+          <select class="form-select" id="organizationType" name="organization_type" required>
+            {% for type_value, type_label in type_options %}
+            <option value="{{ type_value }}" {% if org and org.organization_type == type_value %}selected{% endif %}>{{ type_label }}</option>
+            {% endfor %}
+          </select>
+          <label for="organizationType">Organization Type <span class="required-mark">*</span></label>
+          <div class="invalid-feedback">Organization type is required.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2 class="section-title">Location</h2>
+      <p class="section-text">Add address information used across organization management.</p>
+      <div class="form-grid">
+        <div class="form-floating">
+          <input class="form-control" id="organizationCity" name="city" placeholder="City" value="{{ org.city if org else '' }}">
+          <label for="organizationCity">City</label>
+        </div>
+        <div class="form-floating">
+          <input class="form-control" id="organizationState" name="state" placeholder="State" value="{{ org.state if org else '' }}">
+          <label for="organizationState">State</label>
+        </div>
+        <div class="form-floating grid-full">
+          <textarea class="form-control" id="organizationAddress" name="address" placeholder="Address">{{ org.address if org else '' }}</textarea>
+          <label for="organizationAddress">Address</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2 class="section-title">Contact and Status</h2>
+      <p class="section-text">Set primary contact information and the current organization status.</p>
+      <div class="form-grid form-grid-three">
+        <div class="form-floating">
+          <input class="form-control" id="contactPerson" name="contact_person" placeholder="Contact Person" value="{{ org.contact_person if org else '' }}">
+          <label for="contactPerson">Contact Person</label>
+        </div>
+        <div class="form-floating">
+          <input class="form-control" id="organizationMobile" name="mobile" placeholder="Mobile" value="{{ org.mobile if org else '' }}">
+          <label for="organizationMobile">Mobile</label>
+        </div>
+        <div class="form-floating">
+          <input class="form-control" id="organizationEmail" name="email" type="email" placeholder="Email" value="{{ org.email if org else '' }}">
+          <label for="organizationEmail">Email</label>
+          <div class="invalid-feedback">Enter a valid email address.</div>
+        </div>
+        <div class="form-floating">
+          <select class="form-select" id="organizationStatus" name="status">
+            <option value="active" {% if not org or org.status == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if org and org.status == 'inactive' %}selected{% endif %}>Inactive</option>
+          </select>
+          <label for="organizationStatus">Status</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <a class="btn enterprise-btn" href="{{ url_for('superadmin.organizations_list') }}">Cancel</a>
+      <button class="btn enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-check2 me-2"></i>Save Organization</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

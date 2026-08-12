@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .org-admin-shell { min-height: calc(100vh - 2rem); }
+  .org-admin-sidebar {
+    background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+    border-radius: 1rem;
+  }
+  .org-admin-sidebar .list-group-item {
+    background: transparent;
+    color: #d1d5db;
+    border: 0;
+    border-radius: .75rem;
+    margin-bottom: .25rem;
+  }
+  .org-admin-sidebar .list-group-item.active,
+  .org-admin-sidebar .list-group-item:hover {
+    background: rgba(255,255,255,.1);
+    color: #fff;
+  }
+</style>
+<div class="container-fluid px-0 org-admin-shell">
+  <div class="row g-3">
+    <div class="col-lg-3 col-xl-2">
+      <div class="org-admin-sidebar p-3 shadow-sm">
+        <div class="text-white mb-4">
+          <div class="fw-semibold">{{ session.get('organization_name', 'Organization') }}</div>
+          <small class="text-white-50">Organization Admin</small>
+        </div>
+        <div class="list-group list-group-flush">
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.users' %}active{% endif %}" href="{{ url_for('admin.users') }}">Users</a>
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.students' %}active{% endif %}" href="{{ url_for('admin.students') }}">Students</a>
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.employees' %}active{% endif %}" href="{{ url_for('admin.employees') }}">Employees</a>
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.emergency_profiles' %}active{% endif %}" href="{{ url_for('admin.emergency_profiles') }}">Emergency Profiles</a>
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.freelancers' %}active{% endif %}" href="{{ url_for('admin.freelancers') }}">Freelancers</a>
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.visitors' %}active{% endif %}" href="{{ url_for('admin.visitors') }}">Visitors</a>
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.citizens' %}active{% endif %}" href="{{ url_for('admin.citizens') }}">Citizens</a>
+          <a class="list-group-item list-group-item-action {% if request.endpoint == 'admin.qr_cards' %}active{% endif %}" href="{{ url_for('admin.qr_cards') }}">QR Cards</a>
+          <a class="list-group-item list-group-item-action text-danger" href="{{ url_for('admin.logout') }}">Logout</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-9 col-xl-10">
+      <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ session.get('user_name', 'Organization Admin') }}</div>
+            <small class="text-muted">{{ session.get('organization_name', 'Organization') }}</small>
+          </div>
+          <a class="btn btn-outline-danger" href="{{ url_for('admin.logout') }}">Logout</a>
+        </div>
+      </div>
+      {% block admin_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

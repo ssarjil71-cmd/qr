@@ -1,0 +1,77 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  /* Enterprise Form Page */
+  .enterprise-page { display: grid; gap: 24px; }
+  .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
+  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+  .hierarchy-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .hierarchy-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 8px 12px; border-radius: 999px; background: #F8FAFC; color: var(--text-secondary); font-size: 13px; font-weight: 800; }
+  .hierarchy-separator { color: var(--text-secondary); }
+  .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
+  .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
+  .enterprise-btn-primary { border-color: var(--primary-color); background: var(--primary-color); color: #fff; }
+  .enterprise-btn-primary:hover { border-color: var(--primary-hover); background: var(--primary-hover); color: #fff; }
+  .form-shell { overflow: hidden; border: 1px solid var(--border-color); border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .form-section { padding: 24px; }
+  .section-title { margin: 0 0 4px; color: var(--text-primary); font-size: 20px; font-weight: 800; }
+  .section-text { margin: 0 0 20px; color: var(--text-secondary); font-size: 14px; }
+  .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .form-floating > .form-control { min-height: 56px; border-color: var(--border-color); border-radius: 12px; box-shadow: none; }
+  .form-floating > .form-control:focus { border-color: rgba(37, 99, 235, .45); box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+  .required-mark { color: #EF4444; }
+  .form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 20px 24px; border-top: 1px solid #EEF2F7; background: #FCFCFD; }
+  @media (max-width: 992px) { .form-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 768px) { .enterprise-header { align-items: flex-start; flex-direction: column; } .enterprise-title { font-size: 30px; } .form-section { padding: 16px; } .form-actions { justify-content: stretch; } .form-actions .btn { width: 100%; } }
+</style>
+
+<div class="enterprise-page">
+  <!-- Page Header -->
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">Create Division</h1>
+      <p class="enterprise-subtitle">Add a division within the selected organization hierarchy.</p>
+    </div>
+  </div>
+
+  <!-- Hierarchy -->
+  <div class="hierarchy-bar" aria-label="Organization hierarchy">
+    <span class="hierarchy-chip"><i class="bi bi-buildings"></i>Organization</span>
+    <span class="hierarchy-separator"><i class="bi bi-chevron-right"></i></span>
+    <span class="hierarchy-chip"><i class="bi bi-diagram-3"></i>Branch</span>
+    <span class="hierarchy-separator"><i class="bi bi-chevron-right"></i></span>
+    <span class="hierarchy-chip"><i class="bi bi-diagram-2"></i>Department</span>
+    <span class="hierarchy-separator"><i class="bi bi-chevron-right"></i></span>
+    <span class="hierarchy-chip"><i class="bi bi-bezier2"></i>Division</span>
+  </div>
+
+  <!-- Division Form -->
+  <form method="post" class="form-shell">
+    <div class="form-section">
+      <h2 class="section-title">Division Information</h2>
+      <p class="section-text">Assign an optional lead user ID if the division already has an owner.</p>
+      <div class="form-grid">
+        <div class="form-floating">
+          <input class="form-control" id="divisionName" name="name" placeholder="Name" required>
+          <label for="divisionName">Name <span class="required-mark">*</span></label>
+          <div class="invalid-feedback">Division name is required.</div>
+        </div>
+        <div class="form-floating">
+          <input class="form-control" id="divisionCode" name="code" placeholder="Code">
+          <label for="divisionCode">Code</label>
+        </div>
+        <div class="form-floating">
+          <input class="form-control" id="leadUserId" name="lead_user_id" placeholder="Lead User ID">
+          <label for="leadUserId">Lead User ID (optional)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button class="btn enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-check2 me-2"></i>Create Division</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

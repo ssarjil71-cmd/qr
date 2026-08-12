@@ -1,0 +1,601 @@
+{% extends 'base.html' %}
+{% block navbar %}{% endblock %}
+{% block content %}
+<!-- 
+  Modern SaaS Admin Dashboard Redesign
+  ------------------------------------
+  - UI/UX Designer & Frontend Engineer: Gemini
+  - Inspired by: Linear, Vercel, Stripe, Notion
+  - Tech: Flask, Bootstrap 5, Bootstrap Icons
+  - Date: Project template
+-->
+<style>
+  /* 0. SETUP & CONFIGURATION */
+  /* ------------------------- */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    /* Colors */
+    --bg-primary: #F8FAFC;
+    --sidebar-bg: #0F172A;
+    --primary-color: #2563EB;
+    --primary-hover: #1D4ED8;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --border-color: #E5E7EB;
+    --card-bg: #FFFFFF;
+    --sidebar-text: #CBD5E1;
+    --sidebar-text-hover: #FFFFFF;
+
+    /* Typography */
+    --font-family: 'Inter', sans-serif;
+    --fs-title: 36px;
+    --fs-section: 24px;
+    --fs-card-number: 42px;
+    --fs-card-title: 15px;
+    --fs-small: 13px;
+
+    /* Sizing & Spacing */
+    --sidebar-width-desktop: 260px;
+    --sidebar-width-collapsed: 88px;
+    --navbar-height: 80px;
+    --content-padding: 2rem;
+    --card-radius: 18px;
+    --button-radius: 12px;
+
+    /* Effects */
+    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --transition-fast: all 0.25s ease-in-out;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    font-family: var(--font-family);
+    color: var(--text-primary);
+  }
+
+  body > .container.mt-4 {
+    width: 100%;
+    max-width: none;
+    margin: 0 !important;
+    padding: 0;
+  }
+
+  /* 1. MAIN LAYOUT */
+  /* -------------- */
+  .dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+    background: var(--bg-primary);
+  }
+
+  .content {
+    flex-grow: 1;
+    padding-left: calc(var(--sidebar-width-desktop) + 32px);
+    transition: padding-left 0.25s ease-in-out;
+  }
+
+  .content-inner {
+    padding: 24px;
+  }
+  
+  .dashboard-layout.sidebar-collapsed .content {
+    padding-left: calc(var(--sidebar-width-collapsed) + 32px);
+  }
+
+  /* 2. SIDEBAR */
+  /* ---------- */
+  .sidebar {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    right: 16px;
+    bottom: 16px;
+    width: var(--sidebar-width-desktop);
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    margin: 0 16px 16px 16px;
+    border-radius: 24px;
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.25s ease-in-out;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .sidebar {
+    scrollbar-width: none;
+  }
+
+  .dashboard-layout.sidebar-collapsed .sidebar {
+    width: var(--sidebar-width-collapsed);
+    align-items: center;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px 18px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .sidebar-logo-icon {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--button-radius);
+    background-color: var(--primary-color);
+    color: #fff;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  
+  .sidebar-logo-text {
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+  }
+  
+  .dashboard-layout.sidebar-collapsed .sidebar-logo-text {
+    opacity: 0;
+    display: none;
+  }
+
+  .sidebar nav {
+    flex-grow: 1;
+  }
+  
+  .sidebar-group-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #94A3B8;
+    padding: 0 1rem;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    letter-spacing: .08em;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+  }
+  
+  .dashboard-layout.sidebar-collapsed .sidebar-group-title {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 48px;
+    padding: 0 14px;
+    border-radius: var(--button-radius);
+    color: var(--sidebar-text);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: var(--transition-fast);
+    white-space: nowrap;
+  }
+  
+  .sidebar-link i {
+    width: 22px;
+    font-size: 19px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--sidebar-text-hover);
+  }
+
+  .sidebar-link.active {
+    background-color: var(--primary-color);
+    color: var(--sidebar-text-hover);
+    box-shadow: 0 12px 26px rgba(37, 99, 235, .28);
+  }
+  
+  .sidebar-link .link-text {
+    opacity: 1;
+    transition: opacity 0.2s 0.1s ease-in-out;
+  }
+  
+  .dashboard-layout.sidebar-collapsed .sidebar-link {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .dashboard-layout.sidebar-collapsed .sidebar-link .link-text {
+    opacity: 0;
+    width: 0;
+    display: none;
+  }
+  
+  .sidebar .disabled-link {
+    opacity: .5;
+    pointer-events: none;
+  }
+
+  .sidebar-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 12px;
+    margin-top: 16px;
+  }
+
+  /* 3. HEADER / NAVBAR */
+  /* ------------------- */
+  .header {
+    min-height: 64px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .header-search {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .header-search .form-control {
+    height: 48px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+    padding-left: 40px;
+  }
+
+  .header-search .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+    border-color: var(--primary-color);
+  }
+
+  .header-search .search-icon {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+  }
+  
+  .sidebar-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-primary);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-btn {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--button-radius);
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    transition: var(--transition-fast);
+  }
+  .action-btn:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
+  }
+
+  .notification-dot {
+    position: absolute;
+    top: 10px;
+    right: 11px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #EF4444;
+    border: 2px solid #fff;
+  }
+  
+  .user-profile .dropdown-toggle::after {
+    display: none;
+  }
+  .user-profile-img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--card-bg);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .user-chip {
+    min-height: 48px;
+    padding: 4px 8px 4px 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--card-bg);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+    transition: var(--transition-fast);
+  }
+
+  .user-chip:hover {
+    transform: translateY(-1px);
+    border-color: rgba(37, 99, 235, .35);
+  }
+
+  .premium-dropdown {
+    min-width: 18rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, .14);
+    padding: 8px;
+    animation: dropdownFade .25s ease;
+  }
+
+  .premium-dropdown .dropdown-item {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  @keyframes dropdownFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 4. RESPONSIVENESS */
+  /* ----------------- */
+  @media (max-width: 992px) {
+    .content {
+      padding-left: calc(var(--sidebar-width-collapsed) + 32px);
+    }
+    .sidebar {
+      width: var(--sidebar-width-collapsed);
+      align-items: center;
+    }
+    .sidebar-logo-text,
+    .sidebar-group-title,
+    .sidebar-link .link-text {
+      opacity: 0;
+      width: 0;
+      display: none;
+    }
+    .sidebar-link {
+      justify-content: center;
+      padding: 0;
+    }
+    .header-search {
+      max-width: 300px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      left: calc(-1 * var(--sidebar-width-desktop) - 32px);
+      transition: left 0.3s ease-in-out;
+    }
+    .sidebar.is-open {
+      left: 0;
+      width: var(--sidebar-width-desktop);
+      align-items: flex-start;
+      box-shadow: var(--shadow-md);
+    }
+    .sidebar.is-open .sidebar-logo-text,
+    .sidebar.is-open .sidebar-group-title,
+    .sidebar.is-open .sidebar-link .link-text {
+      opacity: 1;
+      width: auto;
+      display: block;
+    }
+    .sidebar.is-open .sidebar-link {
+      justify-content: flex-start;
+      padding: 0 18px;
+    }
+    .content {
+      padding-left: 0;
+    }
+    .content-inner {
+      padding: 16px;
+    }
+    .sidebar-toggle {
+      display: block;
+    }
+    .header {
+      align-items: flex-start;
+    }
+    .header-search {
+      order: 3;
+      display: block;
+      flex: 0 0 100%;
+      max-width: none;
+    }
+  }
+
+</style>
+
+<div class="dashboard-layout" id="dashboard-layout">
+  <!-- ====== Sidebar Start ====== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="{{ url_for('superadmin.dashboard') }}" class="sidebar-logo-icon">
+        <i class="bi bi-shield-shaded"></i>
+      </a>
+      <div class="sidebar-logo-text">
+        <div class="fw-bold fs-5">LifeShield QR</div>
+        <small class="text-muted">Super Admin</small>
+      </div>
+    </div>
+
+    <nav>
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">Main</div>
+        <a class="sidebar-link {% if request.endpoint == 'superadmin.dashboard' %}active{% endif %}" href="{{ url_for('superadmin.dashboard') }}">
+          <i class="bi bi-grid-1x2-fill"></i><span class="link-text">Dashboard</span>
+        </a>
+        <a class="sidebar-link {% if request.endpoint in ['superadmin.organizations_list', 'superadmin.organization_create', 'superadmin.organization_edit', 'superadmin.organization_view'] %}active{% endif %}" href="{{ url_for('superadmin.organizations_list') }}">
+          <i class="bi bi-buildings"></i><span class="link-text">Organizations</span>
+        </a>
+        <a class="sidebar-link {% if request.endpoint == 'superadmin.users' %}active{% endif %}" href="{{ url_for('superadmin.users') }}">
+          <i class="bi bi-people"></i><span class="link-text">Users</span>
+        </a>
+        <a class="sidebar-link {% if request.endpoint == 'superadmin.qr_cards' %}active{% endif %}" href="{{ url_for('superadmin.qr_cards') }}">
+          <i class="bi bi-qr-code-scan"></i><span class="link-text">QR Cards</span>
+        </a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">Management</div>
+        <a class="sidebar-link disabled-link" href="#"><i class="bi bi-diagram-3"></i><span class="link-text">Branches</span></a>
+        <a class="sidebar-link disabled-link" href="#"><i class="bi bi-diagram-2"></i><span class="link-text">Departments</span></a>
+        <a class="sidebar-link disabled-link" href="#"><i class="bi bi-bezier2"></i><span class="link-text">Divisions</span></a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">Content</div>
+        <a class="sidebar-link disabled-link" href="#"><i class="bi bi-briefcase"></i><span class="link-text">Portfolio</span></a>
+        <a class="sidebar-link disabled-link" href="#"><i class="bi bi-file-earmark-text"></i><span class="link-text">Resume</span></a>
+        <a class="sidebar-link disabled-link" href="#"><i class="bi bi-megaphone"></i><span class="link-text">Referrals</span></a>
+        <a class="sidebar-link disabled-link" href="#"><i class="bi bi-credit-card"></i><span class="link-text">Payments</span></a>
+        <a class="sidebar-link {% if request.endpoint == 'superadmin.reports' %}active{% endif %}" href="{{ url_for('superadmin.reports') }}">
+          <i class="bi bi-bar-chart-line"></i><span class="link-text">Reports</span>
+        </a>
+      </div>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <div class="sidebar-group-title">System</div>
+      <a class="sidebar-link {% if request.endpoint == 'superadmin.settings' %}active{% endif %}" href="{{ url_for('superadmin.settings') }}">
+        <i class="bi bi-gear"></i><span class="link-text">Settings</span>
+      </a>
+      <a class="sidebar-link" href="{{ url_for('superadmin.logout') }}">
+        <i class="bi bi-box-arrow-right"></i><span class="link-text">Logout</span>
+      </a>
+    </div>
+  </aside>
+  <!-- ====== Sidebar End ====== -->
+
+  <!-- ====== Content Area Start ====== -->
+  <main class="content">
+    <div class="content-inner">
+      <!-- ====== Header Start ====== -->
+      <header class="header">
+        <button class="sidebar-toggle" id="sidebar-toggle-btn">
+          <i class="bi bi-list"></i>
+        </button>
+
+        <form class="header-search" role="search">
+          <i class="bi bi-search search-icon"></i>
+          <input class="form-control" type="search" placeholder="Search organizations, users, QR cards..." aria-label="Search">
+        </form>
+
+        <div class="header-actions">
+          <a href="#" class="action-btn position-relative" aria-label="Notifications">
+            <i class="bi bi-bell"></i>
+            <span class="notification-dot"></span>
+          </a>
+          <a href="#" class="action-btn d-none d-sm-inline-flex" aria-label="Messages">
+            <i class="bi bi-chat-dots"></i>
+          </a>
+          <button id="sidebar-collapse-btn" class="action-btn d-none d-lg-inline-flex" aria-label="Collapse sidebar">
+            <i class="bi bi-arrows-angle-contract"></i>
+          </button>
+          
+          <div class="dropdown user-profile">
+            <a href="#" class="dropdown-toggle user-chip d-flex align-items-center gap-2 text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="https://i.pravatar.cc/150?u={{ session.get('user_id', 'default') }}" alt="User avatar" class="user-profile-img">
+              <div class="d-none d-md-block">
+                <div class="fw-bold">{{ session.get('user_name', 'Super Admin') }}</div>
+                <small class="text-muted">Super Admin</small>
+              </div>
+              <i class="bi bi-chevron-down small text-muted d-none d-md-inline-flex"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end premium-dropdown">
+              <li>
+                <h6 class="dropdown-header">
+                  {{ session.get('user_name', 'Super Admin') }}
+                  <span class="d-block fw-normal text-muted">Super Admin</span>
+                </h6>
+              </li>
+              <li><a class="dropdown-item" href="#"><i class="bi bi-person-circle me-2"></i>My Profile</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('superadmin.settings') }}"><i class="bi bi-gear me-2"></i>Settings</a></li>
+              <li><a class="dropdown-item" href="#"><i class="bi bi-shield-lock me-2"></i>Change Password</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('superadmin.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <!-- ====== Header End ====== -->
+      
+      <!-- ====== Main Content Start ====== -->
+      <section class="dashboard-main">
+        {% block superadmin_content %}{% endblock %}
+      </section>
+      <!-- ====== Main Content End ====== -->
+    </div>
+  </main>
+  <!-- ====== Content Area End ====== -->
+</div>
+
+<script>
+  // Simple script for sidebar toggling
+  document.addEventListener('DOMContentLoaded', function() {
+    const layout = document.getElementById('dashboard-layout');
+    const collapseBtn = document.getElementById('sidebar-collapse-btn');
+    const mobileToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebar = document.getElementById('sidebar');
+
+    // Desktop sidebar collapse
+    if(collapseBtn) {
+      collapseBtn.addEventListener('click', function() {
+        layout.classList.toggle('sidebar-collapsed');
+        // Optional: save state to localStorage
+        localStorage.setItem('sidebarCollapsed', layout.classList.contains('sidebar-collapsed'));
+      });
+      // Check for saved state on page load
+      if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        layout.classList.add('sidebar-collapsed');
+      }
+    }
+
+    // Mobile sidebar toggle
+    if(mobileToggleBtn) {
+       mobileToggleBtn.addEventListener('click', function() {
+        sidebar.classList.toggle('is-open');
+      });
+    }
+
+    document.addEventListener('click', function(event) {
+      const clickedInsideSidebar = sidebar.contains(event.target);
+      const clickedToggle = mobileToggleBtn && mobileToggleBtn.contains(event.target);
+      if (!clickedInsideSidebar && !clickedToggle && sidebar.classList.contains('is-open')) {
+        sidebar.classList.remove('is-open');
+      }
+    });
+  });
+</script>
+{% endblock %}

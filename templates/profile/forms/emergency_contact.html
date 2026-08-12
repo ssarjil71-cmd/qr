@@ -1,0 +1,44 @@
+{% if profile_type == 'student' %}
+<form method="post" action="{{ url_for('user.update_student_emergency_contact') }}" class="row g-3 mt-1">
+  <div class="col-12">
+    <h5>Primary Contact</h5>
+  </div>
+  <div class="col-md-6"><label class="form-label">Name</label><input class="form-control" name="emergency_primary_contact_name" value="{{ user.emergency_primary_contact_name or '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Relation</label><input class="form-control" name="emergency_primary_contact_relation" value="{{ user.emergency_primary_contact_relation or '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Mobile</label><input class="form-control" name="emergency_primary_contact_mobile" value="{{ user.emergency_primary_contact_mobile or '' }}"></div>
+  <div class="col-md-3"><label class="form-label">WhatsApp</label>
+    <select class="form-select" name="emergency_primary_contact_whatsapp">
+      <option value="" {% if not user.emergency_primary_contact_whatsapp %}selected{% endif %}>Select</option>
+      <option value="Yes" {% if user.emergency_primary_contact_whatsapp == 'Yes' %}selected{% endif %}>Yes</option>
+      <option value="No" {% if user.emergency_primary_contact_whatsapp == 'No' %}selected{% endif %}>No</option>
+    </select>
+  </div>
+
+  <div class="col-12">
+    <h5>Secondary Contact</h5>
+  </div>
+  <div class="col-md-6"><label class="form-label">Name</label><input class="form-control" name="emergency_secondary_contact_name" value="{{ user.emergency_secondary_contact_name or '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Relation</label><input class="form-control" name="emergency_secondary_contact_relation" value="{{ user.emergency_secondary_contact_relation or '' }}"></div>
+  <div class="col-md-3"><label class="form-label">Mobile</label><input class="form-control" name="emergency_secondary_contact_mobile" value="{{ user.emergency_secondary_contact_mobile or '' }}"></div>
+
+  <div class="col-12">
+    <h5>Family Doctor</h5>
+  </div>
+  <div class="col-md-8"><label class="form-label">Doctor Name</label><input class="form-control" name="emergency_doctor_name" value="{{ user.emergency_doctor_name or '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Phone</label><input class="form-control" name="emergency_doctor_phone" value="{{ user.emergency_doctor_phone or '' }}"></div>
+
+  <div class="col-12">
+    <label class="form-label">Address</label>
+    <textarea class="form-control" name="emergency_address" rows="3">{{ user.emergency_address or '' }}</textarea>
+  </div>
+
+  <div class="col-12">
+    <label class="form-label">Emergency Note</label>
+    <textarea class="form-control" name="emergency_note" rows="3">{{ user.emergency_note or '' }}</textarea>
+  </div>
+
+  <div class="col-12">
+    <button class="btn btn-primary" type="submit">Save</button>
+  </div>
+</form>
+{% endif %}

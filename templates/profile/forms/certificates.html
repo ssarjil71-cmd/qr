@@ -1,0 +1,30 @@
+<form method="post" action="{{ url_for('employee.create_employee_certificate') if profile_type == 'employee' else url_for('user.update_student_certificates') }}" class="row g-3 mt-1 border rounded p-3 mb-3">
+  <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" name="title"></div>
+  <div class="col-md-6"><label class="form-label">Issuer</label><input class="form-control" name="issuer"></div>
+  <div class="col-md-6"><label class="form-label">Issue Date</label><input type="date" class="form-control" name="issue_date"></div>
+  <div class="col-md-6"><label class="form-label">Expiry Date</label><input type="date" class="form-control" name="expiry_date"></div>
+  <div class="col-md-6"><label class="form-label">Credential ID</label><input class="form-control" name="credential_id"></div>
+  <div class="col-md-6"><label class="form-label">Credential URL</label><input class="form-control" name="credential_url"></div>
+  <div class="col-12"><label class="form-label">Document URL</label><input class="form-control" name="document_url"></div>
+  <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Add Certificate</button></div>
+</form>
+
+{% for certificate in certificates %}
+<form method="post" action="{{ url_for('employee.edit_employee_certificate', certificate_id=certificate.id) if profile_type == 'employee' else url_for('user.edit_student_certificate', certificate_id=certificate.id) }}" class="row g-3 border rounded p-3 mb-3">
+  <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" name="title" value="{{ certificate.title }}"></div>
+  <div class="col-md-6"><label class="form-label">Issuer</label><input class="form-control" name="issuer" value="{{ certificate.issuer or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Issue Date</label><input type="date" class="form-control" name="issue_date" value="{{ certificate.issue_date }}"></div>
+  <div class="col-md-6"><label class="form-label">Expiry Date</label><input type="date" class="form-control" name="expiry_date" value="{{ certificate.expiry_date }}"></div>
+  <div class="col-md-6"><label class="form-label">Credential ID</label><input class="form-control" name="credential_id" value="{{ certificate.credential_id or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Credential URL</label><input class="form-control" name="credential_url" value="{{ certificate.credential_url or '' }}"></div>
+  <div class="col-12"><label class="form-label">Document URL</label><input class="form-control" name="document_url" value="{{ certificate.document_url or '' }}"></div>
+  <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ certificate.description or '' }}</textarea></div>
+  <div class="col-12 d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Update</button>
+  </div>
+</form>
+<form method="post" action="{{ url_for('employee.delete_employee_certificate', certificate_id=certificate.id) if profile_type == 'employee' else url_for('user.delete_student_certificate', certificate_id=certificate.id) }}" class="mb-3">
+  <button class="btn btn-outline-danger btn-sm" type="submit">Delete Certificate</button>
+</form>
+{% endfor %}

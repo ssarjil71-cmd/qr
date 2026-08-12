@@ -1,0 +1,44 @@
+<form method="post" action="{{ url_for('employee.update_employee_resume') if profile_type == 'employee' else url_for('user.update_student_resume') }}" class="row g-3 mt-1">
+  <div class="col-md-6">
+    <label class="form-label">Professional Headline</label>
+    <input class="form-control" name="headline" value="{{ resume_profile.get('headline', '') }}" placeholder="Example: Python Developer | Flask | APIs">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Target Role</label>
+    <input class="form-control" name="preferred_role" value="{{ resume_profile.get('preferred_role', '') }}" placeholder="Example: Backend Developer">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Current City</label>
+    <input class="form-control" name="current_city" value="{{ resume_profile.get('current_city', '') }}" placeholder="Example: Pune">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Portfolio / Resume Link</label>
+    <input class="form-control" name="document_url" value="{{ resume_profile.get('document_url', '') }}" placeholder="Optional public URL">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">LinkedIn URL</label>
+    <input class="form-control" name="linkedin_url" value="{{ resume_profile.get('linkedin_url', '') }}">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">GitHub URL</label>
+    <input class="form-control" name="github_url" value="{{ resume_profile.get('github_url', '') }}">
+  </div>
+  <div class="col-12">
+    <label class="form-label">Professional Summary</label>
+    <textarea class="form-control" name="summary" rows="5" placeholder="Write a short professional summary: your strengths, domain, tools, and career goal.">{{ resume_profile.get('summary', '') }}</textarea>
+  </div>
+  <div class="col-12">
+    <div class="resume-builder-note">
+      Resume will automatically include your Basic Information, Academic details, Skills, Projects, Certificates, and Social Links from this profile.
+    </div>
+  </div>
+  <div class="col-12 d-flex flex-wrap gap-2">
+    <button class="btn btn-primary" type="submit">Save Resume</button>
+    {% if profile_type == 'student' %}
+    <a class="btn btn-outline-primary" href="{{ url_for('user.download_student_resume') }}">Download Resume</a>
+    {% endif %}
+  </div>
+</form>
+<form method="post" action="{{ url_for('employee.delete_employee_resume') if profile_type == 'employee' else url_for('user.delete_student_resume') }}" class="mt-2">
+  <button class="btn btn-outline-danger" type="submit">Delete Resume</button>
+</form>

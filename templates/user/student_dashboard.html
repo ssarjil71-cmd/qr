@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="mb-1">Student Profile Dashboard</h3>
+    <p class="text-muted mb-0">Manage your profile section by section.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">Logout</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row align-items-center g-3">
+      <div class="col-md-2">
+        {% if user.photo %}
+        <img src="{{ url_for('user.uploads', filename=user.photo) }}" alt="Photo" class="img-fluid rounded-circle border">
+        {% else %}
+        <div class="border rounded-circle d-flex align-items-center justify-content-center text-muted" style="width: 100px; height: 100px;">No Photo</div>
+        {% endif %}
+      </div>
+      <div class="col-md-7">
+        <h4 class="mb-1">{{ user.name }}</h4>
+        <div class="text-muted">{{ user.email or '-' }} | {{ user.mobile or '-' }}</div>
+        <div class="text-muted">QR Status: {{ 'Generated' if user.qr_token else 'Pending' }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="small text-muted mb-1">Overall Profile Completion</div>
+        <div class="display-6 fw-semibold">{{ overall_completion }}%</div>
+        <div class="progress mt-2" style="height: 10px;">
+          <div class="progress-bar" role="progressbar" style="width: {{ overall_completion }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for section in sections %}
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">{{ section.title }}</h5>
+          <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#section_{{ section.key }}">Edit</button>
+        </div>
+        <div class="small text-muted mb-2">Completion: {{ section.completion }}%</div>
+        <div class="progress mb-3" style="height: 8px;">
+          <div class="progress-bar" role="progressbar" style="width: {{ section.completion }}%"></div>
+        </div>
+
+        {% if section.key == 'basic_information' %}
+        <div class="small text-muted mb-3">
+          <div><strong>Name:</strong> {{ user.name or '-' }}</div>
+          <div><strong>Mobile:</strong> {{ user.mobile or '-' }}</div>
+          <div><strong>Email:</strong> {{ user.email or '-' }}</div>
+          <div><strong>Address:</strong> {{ user.address or '-' }}</div>
+        </div>
+        <div class="collapse" id="section_{{ section.key }}">
+          <form method="post" action="{{ url_for('user.update_student_basic_information') }}" class="row g-3 mt-1">
+            <div class="col-md-6"><label class="form-label">Full Name</label><input class="form-control" name="name" value="{{ user.name or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Mobile</label><input class="form-control" name="mobile" value="{{ user.mobile or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ user.email or '' }}"></div>
+            <div class="col-12"><label class="form-label">Address</label><textarea class="form-control" name="address" rows="3">{{ user.address or '' }}</textarea></div>
+            <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
+          </form>
+        </div>
+
+        {% elif section.key == 'academic_information' %}
+        <div class="small text-muted mb-3">
+          <div><strong>College:</strong> {{ student_profile.get('college', '-') or '-' }}</div>
+          <div><strong>Branch:</strong> {{ student_profile.get('branch', '-') or '-' }}</div>
+          <div><strong>Year:</strong> {{ student_profile.get('year', '-') or '-' }}</div>
+          <div><strong>Roll Number:</strong> {{ student_profile.get('roll_number', '-') or '-' }}</div>
+        </div>
+        <div class="collapse" id="section_{{ section.key }}">
+          <form method="post" action="{{ url_for('user.update_student_academic_information') }}" class="row g-3 mt-1">
+            <div class="col-md-6"><label class="form-label">College</label><input class="form-control" name="college" value="{{ student_profile.get('college', '') }}"></div>
+            <div class="col-md-6"><label class="form-label">Branch</label><input class="form-control" name="branch" value="{{ student_profile.get('branch', '') }}"></div>
+            <div class="col-md-6"><label class="form-label">Year</label><input class="form-control" name="year" value="{{ student_profile.get('year', '') }}"></div>
+            <div class="col-md-6"><label class="form-label">Roll Number</label><input class="form-control" name="roll_number" value="{{ student_profile.get('roll_number', '') }}"></div>
+            <div class="col-12"><label class="form-label">Bio</label><textarea class="form-control" name="bio" rows="3">{{ student_profile.get('bio', '') }}</textarea></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit">Save</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('user.delete_student_academic_information') }}" class="mt-2">
+            <button class="btn btn-outline-danger" type="submit">Delete</button>
+          </form>
+        </div>
+
+        {% elif section.key == 'skills' %}
+        <div class="small text-muted mb-3">{{ user.skills or 'No skills added yet.' }}</div>
+        <div class="collapse" id="section_{{ section.key }}">
+          <form method="post" action="{{ url_for('user.update_student_skills') }}" class="mt-1">
+            <label class="form-label">Skills</label>
+            <textarea class="form-control" name="skills" rows="4">{{ user.skills or '' }}</textarea>
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-primary" type="submit">Save</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('user.delete_student_skills') }}" class="mt-2">
+            <button class="btn btn-outline-danger" type="submit">Delete</button>
+          </form>
+        </div>
+
+        {% elif section.key == 'projects' %}
+        {% if projects %}
+        <div class="small text-muted mb-3">{{ projects|length }} project(s) added.</div>
+        {% else %}
+        <div class="small text-muted mb-3">No projects added yet.</div>
+        {% endif %}
+        <div class="collapse" id="section_{{ section.key }}">
+          <form method="post" action="{{ url_for('user.create_student_project') }}" class="row g-3 mt-1 border rounded p-3 mb-3">
+            <div class="col-md-6"><label class="form-label">Project Title</label><input class="form-control" name="title"></div>
+            <div class="col-md-6"><label class="form-label">Role</label><input class="form-control" name="role_name"></div>
+            <div class="col-md-6"><label class="form-label">Start Date</label><input type="date" class="form-control" name="start_date"></div>
+            <div class="col-md-6"><label class="form-label">End Date</label><input type="date" class="form-control" name="end_date"></div>
+            <div class="col-12"><label class="form-label">Technologies</label><textarea class="form-control" name="technologies" rows="2"></textarea></div>
+            <div class="col-12"><label class="form-label">Project URL</label><input class="form-control" name="project_url"></div>
+            <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
+            <div class="col-12"><button class="btn btn-primary" type="submit">Add Project</button></div>
+          </form>
+
+          {% for project in projects %}
+          <form method="post" action="{{ url_for('user.edit_student_project', project_id=project.id) }}" class="row g-3 border rounded p-3 mb-3">
+            <div class="col-md-6"><label class="form-label">Project Title</label><input class="form-control" name="title" value="{{ project.title }}"></div>
+            <div class="col-md-6"><label class="form-label">Role</label><input class="form-control" name="role_name" value="{{ project.role_name or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Start Date</label><input type="date" class="form-control" name="start_date" value="{{ project.start_date }}"></div>
+            <div class="col-md-6"><label class="form-label">End Date</label><input type="date" class="form-control" name="end_date" value="{{ project.end_date }}"></div>
+            <div class="col-12"><label class="form-label">Technologies</label><textarea class="form-control" name="technologies" rows="2">{{ project.technologies or '' }}</textarea></div>
+            <div class="col-12"><label class="form-label">Project URL</label><input class="form-control" name="project_url" value="{{ project.project_url or '' }}"></div>
+            <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ project.description or '' }}</textarea></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit">Update</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('user.delete_student_project', project_id=project.id) }}" class="mb-3">
+            <button class="btn btn-outline-danger btn-sm" type="submit">Delete Project</button>
+          </form>
+          {% endfor %}
+        </div>
+
+        {% elif section.key == 'certificates' %}
+        {% if certificates %}
+        <div class="small text-muted mb-3">{{ certificates|length }} certificate(s) added.</div>
+        {% else %}
+        <div class="small text-muted mb-3">No certificates added yet.</div>
+        {% endif %}
+        <div class="collapse" id="section_{{ section.key }}">
+          <form method="post" action="{{ url_for('user.update_student_certificates') }}" class="row g-3 mt-1 border rounded p-3 mb-3">
+            <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" name="title"></div>
+            <div class="col-md-6"><label class="form-label">Issuer</label><input class="form-control" name="issuer"></div>
+            <div class="col-md-6"><label class="form-label">Issue Date</label><input type="date" class="form-control" name="issue_date"></div>
+            <div class="col-md-6"><label class="form-label">Expiry Date</label><input type="date" class="form-control" name="expiry_date"></div>
+            <div class="col-md-6"><label class="form-label">Credential ID</label><input class="form-control" name="credential_id"></div>
+            <div class="col-md-6"><label class="form-label">Credential URL</label><input class="form-control" name="credential_url"></div>
+            <div class="col-12"><label class="form-label">Document URL</label><input class="form-control" name="document_url"></div>
+            <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
+            <div class="col-12"><button class="btn btn-primary" type="submit">Add Certificate</button></div>
+          </form>
+
+          {% for certificate in certificates %}
+          <form method="post" action="{{ url_for('user.edit_student_certificate', certificate_id=certificate.id) }}" class="row g-3 border rounded p-3 mb-3">
+            <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" name="title" value="{{ certificate.title }}"></div>
+            <div class="col-md-6"><label class="form-label">Issuer</label><input class="form-control" name="issuer" value="{{ certificate.issuer or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Issue Date</label><input type="date" class="form-control" name="issue_date" value="{{ certificate.issue_date }}"></div>
+            <div class="col-md-6"><label class="form-label">Expiry Date</label><input type="date" class="form-control" name="expiry_date" value="{{ certificate.expiry_date }}"></div>
+            <div class="col-md-6"><label class="form-label">Credential ID</label><input class="form-control" name="credential_id" value="{{ certificate.credential_id or '' }}"></div>
+            <div class="col-md-6"><label class="form-label">Credential URL</label><input class="form-control" name="credential_url" value="{{ certificate.credential_url or '' }}"></div>
+            <div class="col-12"><label class="form-label">Document URL</label><input class="form-control" name="document_url" value="{{ certificate.document_url or '' }}"></div>
+            <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ certificate.description or '' }}</textarea></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit">Update</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('user.delete_student_certificate', certificate_id=certificate.id) }}" class="mb-3">
+            <button class="btn btn-outline-danger btn-sm" type="submit">Delete Certificate</button>
+          </form>
+          {% endfor %}
+        </div>
+
+        {% elif section.key == 'resume' %}
+        <div class="small text-muted mb-3">
+          <div><strong>Headline:</strong> {{ resume_profile.get('headline', '-') or '-' }}</div>
+          <div><strong>Preferred Role:</strong> {{ resume_profile.get('preferred_role', '-') or '-' }}</div>
+          <div><strong>Resume URL:</strong> {{ resume_profile.get('document_url', '-') or '-' }}</div>
+        </div>
+        <div class="collapse" id="section_{{ section.key }}">
+          <form method="post" action="{{ url_for('user.update_student_resume') }}" class="row g-3 mt-1">
+            <div class="col-md-6"><label class="form-label">Headline</label><input class="form-control" name="headline" value="{{ resume_profile.get('headline', '') }}"></div>
+            <div class="col-md-6"><label class="form-label">Preferred Role</label><input class="form-control" name="preferred_role" value="{{ resume_profile.get('preferred_role', '') }}"></div>
+            <div class="col-md-6"><label class="form-label">Current City</label><input class="form-control" name="current_city" value="{{ resume_profile.get('current_city', '') }}"></div>
+            <div class="col-md-6"><label class="form-label">Resume URL</label><input class="form-control" name="document_url" value="{{ resume_profile.get('document_url', '') }}"></div>
+            <div class="col-md-6"><label class="form-label">LinkedIn URL</label><input class="form-control" name="linkedin_url" value="{{ resume_profile.get('linkedin_url', '') }}"></div>
+            <div class="col-md-6"><label class="form-label">GitHub URL</label><input class="form-control" name="github_url" value="{{ resume_profile.get('github_url', '') }}"></div>
+            <div class="col-12"><label class="form-label">Summary</label><textarea class="form-control" name="summary" rows="4">{{ resume_profile.get('summary', '') }}</textarea></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit">Save</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('user.delete_student_resume') }}" class="mt-2">
+            <button class="btn btn-outline-danger" type="submit">Delete Resume</button>
+          </form>
+        </div>
+
+        {% elif section.key == 'social_links' %}
+        {% if social_links %}
+        <div class="small text-muted mb-3">{{ social_links|length }} social link(s) added.</div>
+        {% else %}
+        <div class="small text-muted mb-3">No social links added yet.</div>
+        {% endif %}
+        <div class="collapse" id="section_{{ section.key }}">
+          <form method="post" action="{{ url_for('user.create_student_social_link') }}" class="row g-3 mt-1 border rounded p-3 mb-3">
+            <div class="col-md-4"><label class="form-label">Platform</label><input class="form-control" name="platform"></div>
+            <div class="col-md-4"><label class="form-label">Username</label><input class="form-control" name="username"></div>
+            <div class="col-md-4"><label class="form-label">Profile URL</label><input class="form-control" name="profile_url"></div>
+            <div class="col-12"><button class="btn btn-primary" type="submit">Add Social Link</button></div>
+          </form>
+
+          {% for link in social_links %}
+          <form method="post" action="{{ url_for('user.edit_student_social_link', social_link_id=link.id) }}" class="row g-3 border rounded p-3 mb-3">
+            <div class="col-md-4"><label class="form-label">Platform</label><input class="form-control" name="platform" value="{{ link.platform }}"></div>
+            <div class="col-md-4"><label class="form-label">Username</label><input class="form-control" name="username" value="{{ link.username or '' }}"></div>
+            <div class="col-md-4"><label class="form-label">Profile URL</label><input class="form-control" name="profile_url" value="{{ link.profile_url }}"></div>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit">Update</button>
+            </div>
+          </form>
+          <form method="post" action="{{ url_for('user.delete_student_social_link', social_link_id=link.id) }}" class="mb-3">
+            <button class="btn btn-outline-danger btn-sm" type="submit">Delete Social Link</button>
+          </form>
+          {% endfor %}
+
+
+          
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

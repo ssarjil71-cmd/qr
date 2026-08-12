@@ -1,0 +1,43 @@
+{% extends 'admin/layout.html' %}
+{% block admin_content %}
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3 class="mb-1">{{ user.name }}</h3>
+        <p class="text-muted mb-0">{{ display_code }}</p>
+      </div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('admin.users') }}">Back</a>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-3">
+        {% if user.photo %}
+        <img src="{{ url_for('user.uploads', filename=user.photo) }}" alt="Photo" class="img-fluid rounded border">
+        {% else %}
+        <div class="border rounded p-4 text-center text-muted">No Photo</div>
+        {% endif %}
+      </div>
+      <div class="col-md-9">
+        <div class="row g-3">
+          <div class="col-md-4"><strong>User Type:</strong> {{ user.user_type }}</div>
+          <div class="col-md-4"><strong>Status:</strong> {{ 'Active' if user.is_active else 'Inactive' }}</div>
+          <div class="col-md-4"><strong>QR Status:</strong> {{ 'Generated' if user.qr_token else 'Pending' }}</div>
+          <div class="col-md-4"><strong>Email:</strong> {{ user.email or '-' }}</div>
+          <div class="col-md-4"><strong>Mobile:</strong> {{ user.mobile or '-' }}</div>
+          <div class="col-md-4"><strong>Created:</strong> {{ user.created_at }}</div>
+          <div class="col-md-4"><strong>Branch:</strong> {{ user.company_name or '-' }}</div>
+          <div class="col-md-4"><strong>Department:</strong> {{ user.designation or '-' }}</div>
+          <div class="col-md-4"><strong>Vehicle Number:</strong> {{ user.vehicle_number or '-' }}</div>
+          <div class="col-md-4"><strong>Blood Group:</strong> {{ user.blood_group or '-' }}</div>
+          <div class="col-md-4"><strong>Emergency Contact:</strong> {{ user.emergency_contact or '-' }}</div>
+          <div class="col-md-4"><strong>QR Token:</strong> {{ user.qr_token or '-' }}</div>
+          <div class="col-md-6"><strong>Education:</strong> {{ user.education or '-' }}</div>
+          <div class="col-md-6"><strong>Experience:</strong> {{ user.experience or '-' }}</div>
+          <div class="col-12"><strong>Medical Notes:</strong> {{ user.medical_notes or '-' }}</div>
+          <div class="col-12"><strong>Address:</strong> {{ user.address or '-' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

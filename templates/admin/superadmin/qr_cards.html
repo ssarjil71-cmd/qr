@@ -1,0 +1,170 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+{% set qr_stats = namespace(active=0, inactive=0, assigned=0) %}
+{% for qr_row in qr_rows %}
+  {% if qr_row[4] %}
+    {% set qr_stats.active = qr_stats.active + 1 %}
+  {% else %}
+    {% set qr_stats.inactive = qr_stats.inactive + 1 %}
+  {% endif %}
+  {% if qr_row[1] %}
+    {% set qr_stats.assigned = qr_stats.assigned + 1 %}
+  {% endif %}
+{% endfor %}
+<style>
+  /* Enterprise Page System */
+  .enterprise-page { display: grid; gap: 24px; }
+  .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
+  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+  .enterprise-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
+  .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
+  .toolbar-card { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .metric-card { min-height: 132px; padding: 16px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); transition: var(--transition-fast); }
+  .metric-card:hover { transform: translateY(-3px); border-color: rgba(37, 99, 235, .22); box-shadow: 0 16px 38px rgba(15, 23, 42, .08); }
+  .metric-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .metric-label { color: var(--text-secondary); font-size: 13px; font-weight: 800; }
+  .metric-value { margin-top: 18px; color: var(--text-primary); font-size: 36px; font-weight: 800; line-height: 1; }
+  .metric-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 20px; }
+  .toolbar-search { position: relative; flex: 1 1 360px; }
+  .toolbar-search i { position: absolute; top: 50%; left: 16px; color: var(--text-secondary); transform: translateY(-50%); }
+  .toolbar-search .form-control { min-height: 48px; padding-left: 42px; border-radius: 12px; border-color: var(--border-color); }
+  .data-grid-card { overflow: hidden; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .premium-table-wrap { overflow: auto; }
+  .premium-table { min-width: 940px; margin: 0; color: var(--text-primary); font-size: 14px; }
+  .premium-table thead th { position: sticky; top: 0; z-index: 2; height: 48px; padding: 0 16px; border-bottom: 1px solid var(--border-color); background: #F1F5F9; color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .premium-table tbody tr { height: 56px; border-bottom: 1px solid #EEF2F7; transition: var(--transition-fast); }
+  .premium-table tbody tr:nth-child(even) { background: #FCFCFD; }
+  .premium-table tbody tr:hover { background: #EFF6FF; }
+  .premium-table td { padding: 12px 16px; vertical-align: middle; }
+  .entity-cell { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+  .entity-avatar { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 38px; border-radius: 999px; background: #EFF6FF; color: var(--primary-color); font-weight: 800; }
+  .entity-name { font-weight: 800; }
+  .entity-meta { color: var(--text-secondary); font-size: 13px; }
+  .token-pill { display: inline-flex; max-width: 280px; padding: 7px 10px; overflow: hidden; border-radius: 999px; background: #F8FAFC; color: #334155; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+  .badge-active { background: rgba(16, 185, 129, .12); color: #047857; }
+  .badge-inactive { background: #F1F5F9; color: #475569; }
+  .action-menu-btn { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); border-radius: 10px; background: #fff; color: var(--text-secondary); transition: var(--transition-fast); }
+  .action-menu-btn:hover, .action-menu-btn:focus { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, .10); }
+  .action-dropdown { min-width: 210px; padding: 8px; border: 1px solid var(--border-color); border-radius: 16px; box-shadow: 0 24px 60px rgba(15, 23, 42, .14); }
+  .action-dropdown .dropdown-item { display: flex; align-items: center; gap: 10px; min-height: 40px; border-radius: 10px; font-size: 14px; }
+  .action-dropdown .dropdown-item:hover { background: #EFF6FF; color: var(--primary-color); }
+  .dropdown-danger { color: #EF4444; }
+  .dropdown-danger:hover { background: rgba(239, 68, 68, .06) !important; color: #DC2626 !important; }
+  .empty-state { display: grid; place-items: center; gap: 12px; padding: 72px 24px; text-align: center; }
+  .empty-state-icon { width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; background: #EFF6FF; color: var(--primary-color); font-size: 28px; }
+  @media (max-width: 1100px) { .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 768px) { .enterprise-header { align-items: flex-start; flex-direction: column; } .enterprise-title { font-size: 30px; } .metric-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="enterprise-page">
+  <!-- Page Header -->
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">QR Cards</h1>
+      <p class="enterprise-subtitle">Monitor issued QR cards, assigned users, tokens, and activation status.</p>
+    </div>
+    <div class="enterprise-actions">
+      <button class="btn enterprise-btn" type="button"><i class="bi bi-download me-2"></i>Export</button>
+      <a class="btn enterprise-btn" href="{{ url_for('superadmin.qr_cards') }}"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</a>
+    </div>
+  </div>
+
+  <!-- Statistics -->
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-top"><div class="metric-label">Generated</div><div class="metric-icon bg-primary-subtle text-primary"><i class="bi bi-qr-code"></i></div></div>
+      <div class="metric-value">{{ qr_rows|length }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-top"><div class="metric-label">Assigned</div><div class="metric-icon bg-success-subtle text-success"><i class="bi bi-person-check"></i></div></div>
+      <div class="metric-value">{{ qr_stats.assigned }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-top"><div class="metric-label">Scanned</div><div class="metric-icon bg-warning-subtle text-warning"><i class="bi bi-activity"></i></div></div>
+      <div class="metric-value">-</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-top"><div class="metric-label">Inactive</div><div class="metric-icon bg-secondary-subtle text-secondary"><i class="bi bi-slash-circle"></i></div></div>
+      <div class="metric-value">{{ qr_stats.inactive }}</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar-card">
+    <div class="toolbar-search">
+      <i class="bi bi-search"></i>
+      <input class="form-control" type="search" placeholder="Search QR cards, users, email or token">
+    </div>
+    <button class="btn enterprise-btn" type="button"><i class="bi bi-funnel me-2"></i>Status</button>
+    <button class="btn enterprise-btn" type="button"><i class="bi bi-sort-down me-2"></i>Newest</button>
+    <div class="btn-group" role="group" aria-label="View toggle">
+      <button class="btn enterprise-btn" type="button"><i class="bi bi-table me-2"></i>Table</button>
+      <button class="btn enterprise-btn" type="button"><i class="bi bi-grid-3x3-gap me-2"></i>Grid</button>
+    </div>
+  </div>
+
+  <!-- Data Grid -->
+  <div class="data-grid-card">
+    {% if qr_rows %}
+    <div class="premium-table-wrap">
+      <table class="table premium-table align-middle">
+        <thead>
+          <tr><th>ID</th><th>User</th><th>Email</th><th>Token</th><th>Status</th><th>Created</th><th class="text-end">Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for row in qr_rows %}
+          <tr>
+            <td>{{ row[0] }}</td>
+            <td>
+              <div class="entity-cell">
+                <span class="entity-avatar">{{ row[1][:1] if row[1] else 'Q' }}</span>
+                <div>
+                  <div class="entity-name">{{ row[1] or 'Unassigned' }}</div>
+                  <div class="entity-meta">Card #{{ row[0] }}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ row[2] or '-' }}</td>
+            <td><span class="token-pill">{{ row[3] or '-' }}</span></td>
+            <td>
+              <span class="status-badge {% if row[4] %}badge-active{% else %}badge-inactive{% endif %}">
+                <i class="bi {% if row[4] %}bi-check-circle{% else %}bi-dash-circle{% endif %}"></i>{{ 'Active' if row[4] else 'Inactive' }}
+              </span>
+            </td>
+            <td>{{ row[5] }}</td>
+            <td>
+              <div class="dropdown text-end">
+                <button class="action-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="QR card actions">
+                  <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end action-dropdown">
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-eye"></i>Preview QR</a></li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-download"></i>Download QR</a></li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-printer"></i>Print QR</a></li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-person-plus"></i>Assign QR</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item dropdown-danger" href="#"><i class="bi bi-slash-circle"></i>Deactivate QR</a></li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-qr-code-scan"></i></div>
+      <div>
+        <h3 class="h5 fw-bold mb-1">No QR cards found</h3>
+        <p class="text-muted mb-0">Issued QR cards will appear here once available.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

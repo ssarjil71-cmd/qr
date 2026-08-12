@@ -1,0 +1,163 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  /* Enterprise Page System */
+  .enterprise-page { display: grid; gap: 24px; }
+  .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
+  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+  .enterprise-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
+  .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
+  .toolbar-card { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .metric-card { min-height: 132px; padding: 16px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); transition: var(--transition-fast); }
+  .metric-card:hover { transform: translateY(-3px); border-color: rgba(37, 99, 235, .22); box-shadow: 0 16px 38px rgba(15, 23, 42, .08); }
+  .metric-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .metric-label { color: var(--text-secondary); font-size: 13px; font-weight: 800; }
+  .metric-value { margin-top: 18px; color: var(--text-primary); font-size: 36px; font-weight: 800; line-height: 1; }
+  .metric-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: 20px; }
+  .chart-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 16px; }
+  .chart-card { min-height: 260px; padding: 20px; border: 1px solid var(--border-color); border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .chart-title { margin: 0; color: var(--text-primary); font-size: 18px; font-weight: 800; }
+  .chart-subtitle { margin: 4px 0 18px; color: var(--text-secondary); font-size: 13px; }
+  .chart-bars { display: flex; align-items: end; gap: 12px; height: 150px; padding-top: 16px; }
+  .chart-bar { flex: 1; min-width: 20px; border-radius: 10px 10px 0 0; background: linear-gradient(180deg, #60A5FA, #2563EB); }
+  .insight-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .insight-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border-radius: 14px; background: #F8FAFC; color: var(--text-secondary); font-size: 14px; }
+  .toolbar-search { position: relative; flex: 1 1 360px; }
+  .toolbar-search i { position: absolute; top: 50%; left: 16px; color: var(--text-secondary); transform: translateY(-50%); }
+  .toolbar-search .form-control { min-height: 48px; padding-left: 42px; border-radius: 12px; border-color: var(--border-color); }
+  .data-grid-card { overflow: hidden; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .premium-table-wrap { overflow: auto; }
+  .premium-table { min-width: 860px; margin: 0; color: var(--text-primary); font-size: 14px; }
+  .premium-table thead th { position: sticky; top: 0; z-index: 2; height: 48px; padding: 0 16px; border-bottom: 1px solid var(--border-color); background: #F1F5F9; color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .premium-table tbody tr { height: 56px; border-bottom: 1px solid #EEF2F7; transition: var(--transition-fast); }
+  .premium-table tbody tr:nth-child(even) { background: #FCFCFD; }
+  .premium-table tbody tr:hover { background: #EFF6FF; }
+  .premium-table td { padding: 12px 16px; vertical-align: middle; }
+  .entity-cell { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+  .entity-avatar { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 38px; border-radius: 999px; background: #EFF6FF; color: var(--primary-color); font-weight: 800; }
+  .entity-name { font-weight: 800; }
+  .entity-meta { color: var(--text-secondary); font-size: 13px; }
+  .ip-pill { display: inline-flex; padding: 7px 10px; border-radius: 999px; background: #F8FAFC; color: #334155; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  .empty-state { display: grid; place-items: center; gap: 12px; padding: 72px 24px; text-align: center; }
+  .empty-state-icon { width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; background: #EFF6FF; color: var(--primary-color); font-size: 28px; }
+  @media (max-width: 1100px) { .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .chart-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 768px) { .enterprise-header { align-items: flex-start; flex-direction: column; } .enterprise-title { font-size: 30px; } .metric-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="enterprise-page">
+  <!-- Page Header -->
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">Reports</h1>
+      <p class="enterprise-subtitle">Review QR scan activity, user access patterns, and recent platform events.</p>
+    </div>
+    <div class="enterprise-actions">
+      <button class="btn enterprise-btn" type="button"><i class="bi bi-filetype-pdf me-2"></i>Export PDF</button>
+      <button class="btn enterprise-btn" type="button"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Export Excel</button>
+      <a class="btn enterprise-btn" href="{{ url_for('superadmin.reports') }}"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</a>
+    </div>
+  </div>
+
+  <!-- Statistics -->
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-top"><div class="metric-label">Total Scans</div><div class="metric-icon bg-primary-subtle text-primary"><i class="bi bi-activity"></i></div></div>
+      <div class="metric-value">{{ scan_rows|length }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-top"><div class="metric-label">Known Users</div><div class="metric-icon bg-success-subtle text-success"><i class="bi bi-person-check"></i></div></div>
+      <div class="metric-value">{{ scan_rows|selectattr('1')|list|length }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-top"><div class="metric-label">Organizations</div><div class="metric-icon bg-warning-subtle text-warning"><i class="bi bi-buildings"></i></div></div>
+      <div class="metric-value">-</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-top"><div class="metric-label">Departments</div><div class="metric-icon bg-secondary-subtle text-secondary"><i class="bi bi-diagram-2"></i></div></div>
+      <div class="metric-value">-</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h2 class="chart-title">Scan Activity</h2>
+      <p class="chart-subtitle">Recent activity visualization based on available scan rows.</p>
+      <div class="chart-bars" aria-label="Scan activity chart">
+        <div class="chart-bar" style="height: 42%;"></div>
+        <div class="chart-bar" style="height: 58%;"></div>
+        <div class="chart-bar" style="height: 36%;"></div>
+        <div class="chart-bar" style="height: 72%;"></div>
+        <div class="chart-bar" style="height: 64%;"></div>
+        <div class="chart-bar" style="height: 86%;"></div>
+        <div class="chart-bar" style="height: 48%;"></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h2 class="chart-title">Report Insights</h2>
+      <p class="chart-subtitle">Operational summary from the current dataset.</p>
+      <ul class="insight-list">
+        <li class="insight-item"><span>Total records</span><strong>{{ scan_rows|length }}</strong></li>
+        <li class="insight-item"><span>Latest scope</span><strong>50 rows</strong></li>
+        <li class="insight-item"><span>Export formats</span><strong>PDF, Excel</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar-card">
+    <div class="toolbar-search">
+      <i class="bi bi-search"></i>
+      <input class="form-control" type="search" placeholder="Search reports by user, email or IP address">
+    </div>
+    <button class="btn enterprise-btn" type="button"><i class="bi bi-calendar3 me-2"></i>Date Range</button>
+    <button class="btn enterprise-btn" type="button"><i class="bi bi-buildings me-2"></i>Organization</button>
+    <button class="btn enterprise-btn" type="button"><i class="bi bi-diagram-3 me-2"></i>Branch</button>
+    <button class="btn enterprise-btn" type="button"><i class="bi bi-diagram-2 me-2"></i>Department</button>
+    <button class="btn enterprise-btn" type="button"><i class="bi bi-sort-down me-2"></i>Newest</button>
+  </div>
+
+  <!-- Data Grid -->
+  <div class="data-grid-card">
+    {% if scan_rows %}
+    <div class="premium-table-wrap">
+      <table class="table premium-table align-middle">
+        <thead>
+          <tr><th>ID</th><th>User</th><th>Email</th><th>IP Address</th><th>Scanned At</th></tr>
+        </thead>
+        <tbody>
+          {% for row in scan_rows %}
+          <tr>
+            <td>{{ row[0] }}</td>
+            <td>
+              <div class="entity-cell">
+                <span class="entity-avatar">{{ row[1][:1] if row[1] else 'R' }}</span>
+                <div>
+                  <div class="entity-name">{{ row[1] or 'Unknown User' }}</div>
+                  <div class="entity-meta">Scan #{{ row[0] }}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ row[2] or '-' }}</td>
+            <td><span class="ip-pill">{{ row[3] or '-' }}</span></td>
+            <td>{{ row[4] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-bar-chart-line"></i></div>
+      <div>
+        <h3 class="h5 fw-bold mb-1">No scan data found</h3>
+        <p class="text-muted mb-0">Scan activity will appear here as reports are generated.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

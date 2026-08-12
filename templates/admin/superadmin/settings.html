@@ -1,0 +1,100 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  /* Enterprise Page System */
+  .enterprise-page { display: grid; gap: 24px; }
+  .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
+  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+  .enterprise-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
+  .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
+  .settings-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .settings-card { padding: 20px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); transition: var(--transition-fast); }
+  .settings-card:hover { transform: translateY(-3px); border-color: rgba(37, 99, 235, .22); box-shadow: 0 16px 38px rgba(15, 23, 42, .08); }
+  .settings-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; border-radius: 14px; background: #EFF6FF; color: var(--primary-color); font-size: 20px; }
+  .settings-title { margin: 0 0 6px; color: var(--text-primary); font-size: 16px; font-weight: 800; }
+  .settings-text { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+  .settings-panel { padding: 20px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid #EEF2F7; }
+  .settings-row:last-child { border-bottom: 0; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; background: rgba(16, 185, 129, .12); color: #047857; font-size: 12px; font-weight: 800; }
+  @media (max-width: 1200px) { .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 768px) { .enterprise-header { align-items: flex-start; flex-direction: column; } .enterprise-title { font-size: 30px; } .settings-grid { grid-template-columns: 1fr; } .settings-row { align-items: flex-start; flex-direction: column; } }
+</style>
+
+<div class="enterprise-page">
+  <!-- Page Header -->
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">Settings</h1>
+      <p class="enterprise-subtitle">System configuration uses the current Flask application settings and existing database configuration.</p>
+    </div>
+    <div class="enterprise-actions">
+      <a class="btn enterprise-btn" href="{{ url_for('superadmin.settings') }}"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</a>
+    </div>
+  </div>
+
+  <!-- Settings Cards -->
+  <div class="settings-grid">
+    <div class="settings-card">
+      <div class="settings-icon"><i class="bi bi-sliders"></i></div>
+      <h3 class="settings-title">General Settings</h3>
+      <p class="settings-text">Core platform preferences remain connected to the current Flask application configuration.</p>
+    </div>
+    <div class="settings-card">
+      <div class="settings-icon"><i class="bi bi-shield-lock"></i></div>
+      <h3 class="settings-title">Security</h3>
+      <p class="settings-text">Authentication, session handling, and role access are managed by the existing Flask configuration.</p>
+    </div>
+    <div class="settings-card">
+      <div class="settings-icon"><i class="bi bi-envelope"></i></div>
+      <h3 class="settings-title">Email</h3>
+      <p class="settings-text">Email delivery settings are ready for integration with the existing notification workflow.</p>
+    </div>
+    <div class="settings-card">
+      <div class="settings-icon"><i class="bi bi-chat-left-text"></i></div>
+      <h3 class="settings-title">SMS</h3>
+      <p class="settings-text">SMS provider configuration can be connected when backend support is added.</p>
+    </div>
+    <div class="settings-card">
+      <div class="settings-icon"><i class="bi bi-bell"></i></div>
+      <h3 class="settings-title">Notifications</h3>
+      <p class="settings-text">Operational notifications and admin alerts can be connected to existing application workflows.</p>
+    </div>
+    <div class="settings-card">
+      <div class="settings-icon"><i class="bi bi-qr-code"></i></div>
+      <h3 class="settings-title">QR Settings</h3>
+      <p class="settings-text">QR card generation and scan settings continue to use the current application behavior.</p>
+    </div>
+    <div class="settings-card">
+      <div class="settings-icon"><i class="bi bi-palette"></i></div>
+      <h3 class="settings-title">Branding</h3>
+      <p class="settings-text">Brand presentation follows the LifeShield QR admin design system.</p>
+    </div>
+    <div class="settings-card">
+      <div class="settings-icon"><i class="bi bi-database"></i></div>
+      <h3 class="settings-title">System Information</h3>
+      <p class="settings-text">Organizations, users, QR cards, and reports continue to use the configured database connection.</p>
+    </div>
+  </div>
+
+  <!-- System Status -->
+  <div class="settings-panel">
+    <div class="settings-row">
+      <div>
+        <h3 class="settings-title">Application Status</h3>
+        <p class="settings-text">The superadmin panel is available and using the current server configuration.</p>
+      </div>
+      <span class="status-badge"><i class="bi bi-check-circle"></i>Active</span>
+    </div>
+    <div class="settings-row">
+      <div>
+        <h3 class="settings-title">Configuration Source</h3>
+        <p class="settings-text">Values are loaded from the Flask app settings and existing environment configuration.</p>
+      </div>
+      <span class="status-badge"><i class="bi bi-check-circle"></i>Connected</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

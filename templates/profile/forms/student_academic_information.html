@@ -1,0 +1,11 @@
+<form method="post" action="{{ url_for('user.update_student_academic_information') }}" class="row g-3 mt-1">
+  <div class="col-md-6"><label class="form-label">College</label><input class="form-control" name="college" value="{{ student_profile.get('college', '') }}"></div>
+  <div class="col-md-6"><label class="form-label">Branch</label><input class="form-control" name="branch" value="{{ student_profile.get('branch', '') }}"></div>
+  <div class="col-md-6"><label class="form-label">Year</label><input class="form-control" name="year" value="{{ student_profile.get('year', '') }}"></div>
+  <div class="col-md-6"><label class="form-label">Roll Number</label><input class="form-control" name="roll_number" value="{{ student_profile.get('roll_number', '') }}"></div>
+  <div class="col-12"><label class="form-label">Bio</label><textarea class="form-control" name="bio" rows="3">{{ student_profile.get('bio', '') }}</textarea></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
+</form>
+<form method="post" action="{{ url_for('user.delete_student_academic_information') }}" class="mt-2">
+  <button class="btn btn-outline-danger" type="submit">Delete</button>
+</form>

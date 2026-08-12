@@ -1,0 +1,20 @@
+<form method="post" action="{{ url_for('employee.create_employee_social_link') if profile_type == 'employee' else url_for('user.create_student_social_link') }}" class="row g-3 mt-1 border rounded p-3 mb-3">
+  <div class="col-md-4"><label class="form-label">Platform</label><input class="form-control" name="platform"></div>
+  <div class="col-md-4"><label class="form-label">Username</label><input class="form-control" name="username"></div>
+  <div class="col-md-4"><label class="form-label">Profile URL</label><input class="form-control" name="profile_url"></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Add Social Link</button></div>
+</form>
+
+{% for link in social_links %}
+<form method="post" action="{{ url_for('employee.edit_employee_social_link', social_link_id=link.id) if profile_type == 'employee' else url_for('user.edit_student_social_link', social_link_id=link.id) }}" class="row g-3 border rounded p-3 mb-3">
+  <div class="col-md-4"><label class="form-label">Platform</label><input class="form-control" name="platform" value="{{ link.platform }}"></div>
+  <div class="col-md-4"><label class="form-label">Username</label><input class="form-control" name="username" value="{{ link.username or '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Profile URL</label><input class="form-control" name="profile_url" value="{{ link.profile_url }}"></div>
+  <div class="col-12 d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Update</button>
+  </div>
+</form>
+<form method="post" action="{{ url_for('employee.delete_employee_social_link', social_link_id=link.id) if profile_type == 'employee' else url_for('user.delete_student_social_link', social_link_id=link.id) }}" class="mb-3">
+  <button class="btn btn-outline-danger btn-sm" type="submit">Delete Social Link</button>
+</form>
+{% endfor %}

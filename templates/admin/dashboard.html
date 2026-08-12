@@ -1,0 +1,107 @@
+{% extends 'admin/layout.html' %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="mb-1">{{ org_context.organization_name }}</h3>
+    <p class="text-muted mb-0">Organization Admin Dashboard</p>
+  </div>
+  <div class="text-muted small">Scoped access only to this organization</div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted small">Total Students</div>
+        <div class="display-6 fw-semibold">{{ total_students }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted small">Total Employees</div>
+        <div class="display-6 fw-semibold">{{ total_employees }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted small">Total Emergency Profiles</div>
+        <div class="display-6 fw-semibold">{{ total_emergency_profiles }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="text-muted small">Total QR Cards</div>
+        <div class="display-6 fw-semibold">{{ total_qr_cards }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white">
+        <h5 class="mb-0">Recent Registrations</h5>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in recent_registrations %}
+            <tr>
+              <td>{{ row[1] }}</td>
+              <td>{{ row[2] or '-' }}</td>
+              <td>{{ row[3] }}</td>
+              <td>{{ row[4] }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No registrations found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white">
+        <h5 class="mb-0">QR Scan Statistics</h5>
+      </div>
+      <div class="card-body">
+        <div class="display-6 fw-semibold mb-1">{{ qr_scan_stats.total }}</div>
+        <div class="text-muted mb-3">Total scans</div>
+        {% if qr_scan_stats.labels %}
+          {% for label in qr_scan_stats.labels %}
+          {% set max_value = qr_scan_stats.values|max %}
+          {% set current_value = qr_scan_stats.values[loop.index0] %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small mb-1">
+              <span>{{ label }}</span>
+              <span>{{ current_value }}</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar" role="progressbar" style="width: {{ (current_value * 100 / max_value) if max_value else 0 }}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+        <div class="text-center text-muted py-5">No scan data available.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

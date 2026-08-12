@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <div class="row mb-3">
+    <div class="col-12">
+      <h2 class="fw-bold mb-1">{{ user.name }}</h2>
+      <p class="text-muted">{{ user.user_type | upper }}</p>
+    </div>
+  </div>
+
+  <!-- Profile Photo -->
+  {% if user.photo %}
+  <div class="row mb-4">
+    <div class="col-12 text-center">
+      <img src="{{ url_for('user.uploads', filename=user.photo) }}" alt="Profile Photo" class="img-fluid rounded" style="max-width: 150px; max-height: 150px; object-fit: cover;">
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Contact Information -->
+  <div class="row mb-3">
+    <div class="col-md-6 mb-3">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <strong>📞 Contact Information</strong>
+        </div>
+        <div class="card-body">
+          <p class="mb-2"><strong>Mobile:</strong> {{ user.mobile or 'N/A' }}</p>
+          <p class="mb-2"><strong>Email:</strong> {{ user.email or 'N/A' }}</p>
+          <p class="mb-0"><strong>Address:</strong> {{ user.address or 'N/A' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emergency Information -->
+    <div class="col-md-6 mb-3">
+      <div class="card">
+        <div class="card-header bg-danger text-white">
+          <strong>🚨 Emergency Information</strong>
+        </div>
+        <div class="card-body">
+          <p class="mb-2"><strong>Emergency Contact:</strong> {{ user.emergency_contact or 'N/A' }}</p>
+          <p class="mb-2"><strong>Blood Group:</strong> {{ user.blood_group or 'N/A' }}</p>
+          <p class="mb-0"><strong>Medical Notes:</strong> {{ user.medical_notes or 'N/A' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Education & Skills -->
+  <div class="row mb-3">
+    <div class="col-md-6 mb-3">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <strong>🎓 Education</strong>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">{{ user.education or 'N/A' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <strong>💼 Skills</strong>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">{{ user.skills or 'N/A' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Professional Information -->
+  {% if user.user_type in ['employee', 'contractor'] or user.company_name or user.designation or user.experience %}
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header bg-warning">
+          <strong>🏢 Professional Information</strong>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p class="mb-2"><strong>Company:</strong> {{ user.company_name or 'N/A' }}</p>
+              <p class="mb-0"><strong>Designation:</strong> {{ user.designation or 'N/A' }}</p>
+            </div>
+            <div class="col-md-6">
+              <p class="mb-2"><strong>Experience:</strong> {{ user.experience or 'N/A' }}</p>
+              <p class="mb-0"><strong>Vehicle Number:</strong> {{ user.vehicle_number or 'N/A' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Documents -->
+  {% if user.resume or user.certificates %}
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header bg-secondary text-white">
+          <strong>📄 Documents</strong>
+        </div>
+        <div class="card-body">
+          {% if user.resume %}
+            <p class="mb-2"><strong>Resume:</strong> <a href="{{ url_for('user.uploads', filename=user.resume) }}" target="_blank" class="btn btn-sm btn-outline-primary">Download</a></p>
+          {% endif %}
+          {% if user.certificates %}
+            <p class="mb-0"><strong>Certificates:</strong> <a href="{{ url_for('user.uploads', filename=user.certificates) }}" target="_blank" class="btn btn-sm btn-outline-primary">Download</a></p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Back Button -->
+  <div class="row">
+    <div class="col-12 text-center">
+      <a href="javascript:history.back()" class="btn btn-outline-secondary">← Go Back</a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .card {
+    border: 1px solid #dee2e6;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+  .card-header {
+    font-size: 14px;
+    padding: 0.75rem 1rem;
+  }
+  .card-body {
+    padding: 1rem;
+  }
+  .card-body p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row align-items-center g-3">
+      <div class="col-md-2">
+        {% if user.photo %}
+        <img src="{{ url_for('user.uploads', filename=user.photo) }}" alt="Photo" class="img-fluid rounded-circle border">
+        {% else %}
+        <div class="border rounded-circle d-flex align-items-center justify-content-center text-muted" style="width: 100px; height: 100px;">No Photo</div>
+        {% endif %}
+      </div>
+      <div class="col-md-10">
+        <h3 class="mb-1">{{ user.name }}</h3>
+        <div class="text-muted">{{ profile_label }} Profile</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if profile_sections %}
+<div class="row g-3">
+  {% for section in profile_sections %}
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="mb-3">{{ section.title }}</h5>
+        <div class="small text-muted">
+          {% if section.key == 'basic_information' %}
+            <div><strong>Name:</strong> {{ user.name or '-' }}</div>
+            <div><strong>Mobile:</strong> {{ user.mobile or '-' }}</div>
+            <div><strong>Email:</strong> {{ user.email or '-' }}</div>
+            <div><strong>Date of Birth:</strong> {{ user.dob or '-' }}</div>
+            <div><strong>Gender:</strong> {{ user.gender or '-' }}</div>
+            <div><strong>Blood Group:</strong> {{ user.blood_group or '-' }}</div>
+            <div><strong>Nationality:</strong> {{ user.nationality or '-' }}</div>
+            <div><strong>City:</strong> {{ user.city or '-' }}</div>
+            <div><strong>State:</strong> {{ user.state or '-' }}</div>
+            <div><strong>PIN Code:</strong> {{ user.pin_code or '-' }}</div>
+            <div><strong>Address:</strong> {{ user.address or '-' }}</div>
+          {% elif section.key == 'academic_information' %}
+            <div><strong>College:</strong> {{ student_profile.get('college', '-') or '-' }}</div>
+            <div><strong>Branch:</strong> {{ student_profile.get('branch', '-') or '-' }}</div>
+            <div><strong>Year:</strong> {{ student_profile.get('year', '-') or '-' }}</div>
+            <div><strong>Roll Number:</strong> {{ student_profile.get('roll_number', '-') or '-' }}</div>
+          {% elif section.key == 'emergency_contact' %}
+            <div><strong>Primary Contact:</strong> {{ user.emergency_primary_contact_name or '-' }} {% if user.emergency_primary_contact_relation %}({{ user.emergency_primary_contact_relation }}){% endif %}</div>
+            <div><strong>Mobile:</strong> {{ user.emergency_primary_contact_mobile or '-' }}{% if user.emergency_primary_contact_whatsapp %} • WhatsApp: {{ user.emergency_primary_contact_whatsapp }}{% endif %}</div>
+            <div><strong>Secondary Contact:</strong> {{ user.emergency_secondary_contact_name or '-' }} {% if user.emergency_secondary_contact_relation %}({{ user.emergency_secondary_contact_relation }}){% endif %}</div>
+            <div><strong>Secondary Mobile:</strong> {{ user.emergency_secondary_contact_mobile or '-' }}</div>
+            <div><strong>Family Doctor:</strong> {{ user.emergency_doctor_name or '-' }} • {{ user.emergency_doctor_phone or '-' }}</div>
+            <div><strong>Address:</strong> {{ user.emergency_address or '-' }}</div>
+            <div><strong>Emergency Note:</strong> {{ user.emergency_note or '-' }}</div>
+          {% elif section.key == 'skills' %}
+            <div>{{ user.skills or 'No skills added yet.' }}</div>
+          {% elif section.key == 'projects' %}
+            {% if projects %}
+              {% for project in projects %}
+              <div class="mb-2">
+                <strong>{{ project.title }}</strong>
+                <div>{{ project.role_name or '' }}</div>
+                <div>{{ project.technologies or '' }}</div>
+                {% if project.project_url %}<a href="{{ project.project_url }}" target="_blank" rel="noopener">Project Link</a>{% endif %}
+              </div>
+              {% endfor %}
+            {% else %}
+              <div>No projects added yet.</div>
+            {% endif %}
+          {% elif section.key == 'certificates' %}
+            {% if certificates %}
+              {% for certificate in certificates %}
+              <div class="mb-2">
+                <strong>{{ certificate.title }}</strong>
+                <div>{{ certificate.issuer or '' }}</div>
+                {% if certificate.credential_url %}<a href="{{ certificate.credential_url }}" target="_blank" rel="noopener">Credential Link</a>{% endif %}
+              </div>
+              {% endfor %}
+            {% else %}
+              <div>No certificates added yet.</div>
+            {% endif %}
+          {% elif section.key == 'upload_documents' %}
+            {% if uploaded_documents %}
+              {% for document in uploaded_documents %}
+              <div class="mb-2">
+                <strong>{{ document.title }}</strong>
+                <div class="text-muted small">{{ document.document_type.replace('_', ' ').title() }}</div>
+                {% if document.document_url %}
+                  <a href="{{ document.document_url }}" target="_blank" rel="noopener">View Document</a>
+                {% elif document.file_path %}
+                  <a href="{{ url_for('user.uploads', filename=document.file_path.replace('static/uploads/', '')) }}" target="_blank" rel="noopener">View Document</a>
+                {% else %}
+                  <span class="text-muted">No document available</span>
+                {% endif %}
+              </div>
+              {% endfor %}
+            {% else %}
+              <div>No documents uploaded yet.</div>
+            {% endif %}
+          {% elif section.key == 'resume' %}
+            <div class="public-resume">
+              <div class="public-resume-head">
+                <h4>{{ user.name or 'Resume' }}</h4>
+                <p>{{ resume_profile.get('headline') or resume_profile.get('preferred_role') or 'Professional Resume' }}</p>
+                <span>{{ user.email or '-' }} | {{ user.mobile or '-' }}{% if resume_profile.get('current_city') %} | {{ resume_profile.get('current_city') }}{% endif %}</span>
+              </div>
+              <div class="public-resume-section">
+                <strong>Professional Summary</strong>
+                <p>{{ resume_profile.get('summary') or '-' }}</p>
+              </div>
+              <div class="public-resume-section">
+                <strong>Education</strong>
+                <p>{{ student_profile.get('college', '-') or '-' }}{% if student_profile.get('branch') %} | {{ student_profile.get('branch') }}{% endif %}{% if student_profile.get('year') %} | {{ student_profile.get('year') }}{% endif %}</p>
+              </div>
+              <div class="public-resume-section">
+                <strong>Skills</strong>
+                <p>{{ user.skills or '-' }}</p>
+              </div>
+              {% if projects %}
+              <div class="public-resume-section">
+                <strong>Projects</strong>
+                {% for project in projects[:3] %}
+                <p>{{ project.title }}{% if project.technologies %} - {{ project.technologies }}{% endif %}</p>
+                {% endfor %}
+              </div>
+              {% endif %}
+              {% if resume_profile.get('document_url') %}
+              <a href="{{ resume_profile.get('document_url') }}" target="_blank" rel="noopener">Resume Link</a>
+              {% endif %}
+              {% if public_qr_token %}
+              <a href="{{ url_for('user.public_download_student_resume', token=public_qr_token) }}">Download Resume</a>
+              {% endif %}
+            </div>
+          {% elif section.key == 'social_links' %}
+            {% if social_links %}
+              {% for link in social_links %}
+              <div><strong>{{ link.platform }}:</strong> <a href="{{ link.profile_url }}" target="_blank" rel="noopener">{{ link.username or link.profile_url }}</a></div>
+              {% endfor %}
+            {% else %}
+              <div>No social links added yet.</div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">No profile sections are selected for QR scan view.</div>
+{% endif %}
+{% endblock %}

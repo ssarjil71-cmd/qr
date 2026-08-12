@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center py-3">
+  <div class="col-lg-10">
+    <div class="auth-card p-4 p-lg-5">
+      <h3 class="fw-bold mb-2">Complete Your Profile</h3>
+      <p class="text-muted mb-4">Add your details below to unlock QR generation and profile-based services.</p>
+      <form method="post" enctype="multipart/form-data">
+        <div class="accordion" id="profileSectionsAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="basic-information">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasic" aria-expanded="true" aria-controls="collapseBasic">
+                <span class="fw-bold">Basic Information</span>
+              </button>
+            </h2>
+            <div id="collapseBasic" class="accordion-collapse collapse show" data-bs-parent="#profileSectionsAccordion">
+              <div class="accordion-body">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <label class="form-label">Full Name</label>
+                    <input class="form-control" name="full_name" value="{{ user[2] or '' }}" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Mobile Number</label>
+                    <input class="form-control" name="mobile" value="{{ user[3] or '' }}" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input class="form-control" name="email" type="email" value="{{ user[4] or '' }}" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Address</label>
+                    <input class="form-control" name="address" value="{{ user[17] or '' }}">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="contact-information">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContact" aria-expanded="false" aria-controls="collapseContact">
+                <span class="fw-bold">Contact Information</span>
+              </button>
+            </h2>
+            <div id="collapseContact" class="accordion-collapse collapse" data-bs-parent="#profileSectionsAccordion">
+              <div class="accordion-body">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <label class="form-label">Emergency Contact</label>
+                    <input class="form-control" name="emergency_contact" value="{{ user[14] or '' }}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Education</label>
+                    <input class="form-control" name="education" value="{{ user[7] or '' }}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Skills</label>
+                    <input class="form-control" name="skills" value="{{ user[8] or '' }}">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="emergency-information">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEmergency" aria-expanded="false" aria-controls="collapseEmergency">
+                <span class="fw-bold">Emergency Information</span>
+              </button>
+            </h2>
+            <div id="collapseEmergency" class="accordion-collapse collapse" data-bs-parent="#profileSectionsAccordion">
+              <div class="accordion-body">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <label class="form-label">Blood Group</label>
+                    <input class="form-control" name="blood_group" value="{{ user[15] or '' }}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Medical Conditions</label>
+                    <input class="form-control" name="medical_notes" value="{{ user[16] or '' }}">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="professional-information">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProfessional" aria-expanded="false" aria-controls="collapseProfessional">
+                <span class="fw-bold">Professional Information</span>
+              </button>
+            </h2>
+            <div id="collapseProfessional" class="accordion-collapse collapse" data-bs-parent="#profileSectionsAccordion">
+              <div class="accordion-body">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <label class="form-label">Company Name</label>
+                    <input class="form-control" name="company_name" value="{{ user[11] or '' }}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Designation</label>
+                    <input class="form-control" name="designation" value="{{ user[12] or '' }}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Experience</label>
+                    <input class="form-control" name="experience" value="{{ user[13] or '' }}">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Vehicle Number</label>
+                    <input class="form-control" name="vehicle_number" value="{{ user[18] or '' }}">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="uploads">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUploads" aria-expanded="false" aria-controls="collapseUploads">
+                <span class="fw-bold">Uploads</span>
+              </button>
+            </h2>
+            <div id="collapseUploads" class="accordion-collapse collapse" data-bs-parent="#profileSectionsAccordion">
+              <div class="accordion-body">
+                <div class="row g-4">
+                  <div class="col-md-6" id="profile-photo">
+                    <label class="form-label">Profile Photo</label>
+                    <input class="form-control" type="file" name="profile_photo" accept=".jpg,.jpeg,.png,.webp">
+                    <div class="form-text">JPG, PNG, WEBP only · Max 2 MB</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Resume / Document</label>
+                    <input class="form-control" name="resume" value="{{ user[8] or '' }}">
+                  </div>
+                  {% if user[6] and not user[6].startswith('scrypt:') %}
+                  <div class="col-12">
+                    <img src="{{ url_for('user.uploads', filename=user[6].replace('static/uploads/', '')) }}" alt="Profile preview" class="img-fluid rounded border" style="max-height: 160px;">
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-between">
+          <a class="btn btn-outline-secondary" href="{{ url_for('auth.dashboard') }}">Back</a>
+          <button class="btn btn-primary" type="submit">Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

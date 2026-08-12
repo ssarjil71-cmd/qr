@@ -1,0 +1,92 @@
+{% extends 'admin/layout.html' %}
+{% block admin_content %}
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="mb-0">{{ page_title }}</h3>
+      <a class="btn btn-outline-secondary" href="{{ url_for('admin.dashboard') }}">Back</a>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="row g-3">
+      {% if display_code %}
+      <div class="col-md-6">
+        <label class="form-label">User ID</label>
+        <input class="form-control" value="{{ display_code }}" readonly>
+      </div>
+      {% endif %}
+      <div class="col-md-6">
+        <label class="form-label">User Type</label>
+        <input class="form-control" value="{{ user_type|title }}" readonly>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Name</label>
+        <input class="form-control" name="name" value="{{ user.name if user else '' }}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input class="form-control" name="email" type="email" value="{{ user.email if user else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Mobile</label>
+        <input class="form-control" name="mobile" value="{{ user.mobile if user else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Password {% if user %}<small class="text-muted">(leave blank to keep current)</small>{% endif %}</label>
+        <input class="form-control" name="password" type="password" {% if not user %}required{% endif %}>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Profile Photo</label>
+        <input class="form-control" name="photo" type="file" accept="image/*">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Vehicle Number</label>
+        <input class="form-control" name="vehicle_number" value="{{ user.vehicle_number if user else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Assign Branch</label>
+        <select class="form-select" name="branch_name">
+          <option value="">Select Branch</option>
+          {% for branch in branches %}
+          <option value="{{ branch[1] }}" {% if user and user.company_name == branch[1] %}selected{% endif %}>{{ branch[1] }}{% if branch[2] %} ({{ branch[2] }}){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Assign Department</label>
+        <select class="form-select" name="department_name">
+          <option value="">Select Department</option>
+          {% for department in departments %}
+          <option value="{{ department[1] }}" {% if user and user.designation == department[1] %}selected{% endif %}>{{ department[1] }} - {{ department[3] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Education</label>
+        <input class="form-control" name="education" value="{{ user.education if user else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Experience</label>
+        <input class="form-control" name="experience" value="{{ user.experience if user else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Emergency Contact</label>
+        <input class="form-control" name="emergency_contact" value="{{ user.emergency_contact if user else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Blood Group</label>
+        <input class="form-control" name="blood_group" value="{{ user.blood_group if user else '' }}">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Medical Notes</label>
+        <textarea class="form-control" name="medical_notes" rows="2">{{ user.medical_notes if user else '' }}</textarea>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Address</label>
+        <textarea class="form-control" name="address" rows="3">{{ user.address if user else '' }}</textarea>
+      </div>
+      <div class="col-12">
+        <button class="btn btn-primary" type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

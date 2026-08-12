@@ -1,0 +1,370 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+
+<!-- 
+  Modern SaaS Admin Dashboard Redesign
+  ------------------------------------
+  - Page: Dashboard
+  - Notes: This file contains the main content for the superadmin dashboard,
+    including stats cards and data tables. It inherits the new layout
+    and styles from layout.html.
+-->
+
+<!-- Additional styles specific to dashboard components -->
+<style>
+  /* 5. DASHBOARD COMPONENTS */
+  /* ----------------------- */
+  .page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 8px 0;
+  }
+  
+  .page-title {
+    font-size: var(--fs-title);
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .page-subtitle {
+    font-size: 15px;
+    color: var(--text-secondary);
+  }
+
+  .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    border-radius: var(--button-radius);
+    min-height: 48px;
+    padding: 12px 24px;
+    font-weight: 600;
+    transition: var(--transition-fast);
+  }
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(37, 99, 235, .22);
+  }
+
+  .btn-soft {
+    min-height: 48px;
+    padding: 12px 18px;
+    border-radius: var(--button-radius);
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: var(--transition-fast);
+  }
+
+  .btn-soft:hover {
+    border-color: rgba(37, 99, 235, .35);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, .08);
+  }
+
+  .eyebrow {
+    margin-bottom: 4px;
+    color: var(--text-secondary);
+    font-size: var(--fs-small);
+    font-weight: 700;
+  }
+
+  /* Stat Cards */
+  .stat-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    min-height: 184px;
+    border-radius: var(--card-radius);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(37, 99, 235, .24);
+  }
+
+  .stat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .stat-card-title {
+    font-size: var(--fs-card-title);
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .stat-card-icon {
+    width: 52px;
+    height: 52px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 1.35rem;
+  }
+  
+  .stat-card-value {
+    font-size: var(--fs-card-number);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 18px;
+    line-height: 1;
+  }
+  
+  .stat-card-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    margin-top: 16px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, .1);
+    color: #047857;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* Data Cards (for tables, charts) */
+  .data-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow-soft);
+    overflow: hidden; /* To clip table borders */
+  }
+
+  .data-card-header {
+    padding: 20px 20px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .data-card-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  
+  .data-card .table {
+    margin-bottom: 0;
+  }
+  .data-card .table th {
+    background-color: var(--bg-primary);
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    padding-top: 14px;
+    padding-bottom: 14px;
+    border-bottom-width: 1px;
+  }
+  .data-card .table td {
+      vertical-align: middle;
+      padding-top: 14px;
+      padding-bottom: 14px;
+  }
+
+  .dashboard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .table-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+  }
+
+  .table-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #EFF6FF;
+    color: var(--primary-color);
+    font-size: 13px;
+    font-weight: 800;
+  }
+</style>
+
+<!-- ====== Page Header ====== -->
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Good Afternoon, {{ session.get('user_name', 'Super Admin') }} 👋</div>
+    <h1 class="page-title">Super Admin Dashboard</h1>
+    <p class="page-subtitle">Manage organizations, QR cards, users, and subscriptions.</p>
+  </div>
+  <div class="dashboard-actions">
+    <a class="btn btn-primary" href="{{ url_for('superadmin.organization_create') }}">
+      <i class="bi bi-plus-lg me-2"></i>Create Organization
+    </a>
+    <a class="btn btn-soft" href="{{ url_for('superadmin.reports') }}">
+      <i class="bi bi-download me-2"></i>Export
+    </a>
+    <a class="btn btn-soft" href="{{ url_for('superadmin.dashboard') }}">
+      <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+    </a>
+  </div>
+</div>
+
+<!-- ====== Stats Cards Grid ====== -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3">
+  <!-- Total Organizations -->
+  <div class="col">
+    <div class="stat-card h-100">
+      <div class="stat-card-header">
+        <div class="stat-card-title">Total Organizations</div>
+        <div class="stat-card-icon bg-primary-subtle text-primary"><i class="bi bi-buildings"></i></div>
+      </div>
+      <div class="stat-card-body">
+        <div class="stat-card-value">{{ total_orgs }}</div>
+        <div class="stat-card-trend"><i class="bi bi-arrow-up-right"></i> Platform total</div>
+      </div>
+    </div>
+  </div>
+  <!-- Total Users -->
+  <div class="col">
+    <div class="stat-card h-100">
+      <div class="stat-card-header">
+        <div class="stat-card-title">Total Users</div>
+        <div class="stat-card-icon bg-success-subtle text-success"><i class="bi bi-people"></i></div>
+      </div>
+      <div class="stat-card-body">
+        <div class="stat-card-value">{{ total_users }}</div>
+        <div class="stat-card-trend"><i class="bi bi-arrow-up-right"></i> Active growth</div>
+      </div>
+    </div>
+  </div>
+  <!-- Total QR Cards -->
+  <div class="col">
+    <div class="stat-card h-100">
+      <div class="stat-card-header">
+        <div class="stat-card-title">Total QR Cards</div>
+        <div class="stat-card-icon bg-info-subtle text-info"><i class="bi bi-qr-code-scan"></i></div>
+      </div>
+      <div class="stat-card-body">
+        <div class="stat-card-value">{{ total_qr }}</div>
+        <div class="stat-card-trend"><i class="bi bi-arrow-up-right"></i> Cards issued</div>
+      </div>
+    </div>
+  </div>
+  <!-- Total Scans -->
+  <div class="col">
+    <div class="stat-card h-100">
+      <div class="stat-card-header">
+        <div class="stat-card-title">Total Scans</div>
+        <div class="stat-card-icon bg-danger-subtle text-danger"><i class="bi bi-activity"></i></div>
+      </div>
+      <div class="stat-card-body">
+        <div class="stat-card-value">{{ total_scans }}</div>
+        <div class="stat-card-trend"><i class="bi bi-arrow-up-right"></i> Total scans</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Data Tables Grid ====== -->
+<div class="row g-3">
+  <!-- Latest Registered Users -->
+  <div class="col-xl-7">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <h3 class="data-card-title">Latest Registered Users</h3>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('superadmin.users') }}">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Type</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in latest_users %}
+            <tr>
+              <td>
+                <div class="table-user">
+                  <span class="table-avatar">{{ user.name[:1] if user.name else 'U' }}</span>
+                  <span>{{ user.name }}</span>
+                </div>
+              </td>
+              <td>{{ user.email }}</td>
+              <td><span class="badge bg-light text-dark rounded-pill">{{ user.user_type | title }}</span></td>
+              <td>
+                <span class="badge {% if user.is_active %}text-bg-success{% else %}text-bg-secondary{% endif %}">
+                  {{ 'Active' if user.is_active else 'Inactive' }}
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-5">No users found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="col-xl-5">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <h3 class="data-card-title">Recent Activity</h3>
+        <span class="badge text-bg-light">{{ recent_activity|length }} items</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Subject</th>
+              <th scope="col">Details</th>
+              <th scope="col">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in recent_activity %}
+            <tr>
+              <td>{{ item.subject }}</td>
+              <td><small>{{ item.description }}</small></td>
+              <td><small class="text-muted">{{ item.created_at.strftime('%b %d, %Y') if item.created_at else '-' }}</small></td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="text-center text-muted py-5">No recent activity.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

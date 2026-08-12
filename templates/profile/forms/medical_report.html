@@ -1,0 +1,11 @@
+{% if profile_type == 'student' %}
+<form method="post" action="{{ url_for('user.update_student_medical_report') }}" class="row g-3 mt-1">
+  <div class="col-12">
+    <label class="form-label">Medical Report</label>
+    <textarea class="form-control" name="medical_notes" rows="5">{{ user.medical_notes or '' }}</textarea>
+  </div>
+  <div class="col-12">
+    <button class="btn btn-primary" type="submit">Save</button>
+  </div>
+</form>
+{% endif %}

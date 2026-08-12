@@ -1,0 +1,15 @@
+<form method="post" action="{{ url_for('employee.update_employee_company_information') }}" class="row g-3 mt-1">
+  <div class="col-md-6"><label class="form-label">Company Name</label><input class="form-control" name="company_name" value="{{ employee_profile.get('company_name', '') }}"></div>
+  <div class="col-md-6"><label class="form-label">Employee Code</label><input class="form-control" name="employee_code" value="{{ employee_profile.get('employee_code', '') }}"></div>
+  <div class="col-md-6"><label class="form-label">Designation</label><input class="form-control" name="designation" value="{{ employee_profile.get('designation', '') }}"></div>
+  <div class="col-md-6"><label class="form-label">Employment Type</label><input class="form-control" name="employment_type" value="{{ employee_profile.get('employment_type', '') }}"></div>
+  <div class="col-md-6"><label class="form-label">Office Location</label><input class="form-control" name="office_location" value="{{ employee_profile.get('office_location', '') }}"></div>
+  <div class="col-md-6"><label class="form-label">Joining Date</label><input type="date" class="form-control" name="joining_date" value="{{ employee_profile.get('joining_date', '') }}"></div>
+  <div class="col-12"><label class="form-label">Professional Summary</label><textarea class="form-control" name="professional_summary" rows="3">{{ employee_profile.get('professional_summary', '') }}</textarea></div>
+  <div class="col-12 d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Save</button>
+  </div>
+</form>
+<form method="post" action="{{ url_for('employee.delete_employee_company_information') }}" class="mt-2">
+  <button class="btn btn-outline-danger" type="submit">Delete</button>
+</form>

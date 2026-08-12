@@ -1,0 +1,128 @@
+{% extends 'admin/layout.html' %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="mb-1">{{ page_title }}</h3>
+    <p class="text-muted mb-0">{{ org_context.organization_name }}</p>
+  </div>
+  {% if current_type %}
+  <a class="btn btn-primary" href="{{ url_for('admin.create_user', user_type=current_type) }}">Add {{ page_title[:-1] if page_title.endswith('s') else page_title }}</a>
+  {% else %}
+  <div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add User</button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      {% for item in user_types %}
+      <li><a class="dropdown-item" href="{{ url_for('admin.create_user', user_type=item) }}">{{ item|title }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <form class="row g-2 mb-3" method="get">
+      <div class="col-md-6">
+        <input name="q" class="form-control" placeholder="Search by name, email, mobile" value="{{ q or '' }}">
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="user_type">
+          <option value="">All Types</option>
+          {% for item in user_types %}
+          <option value="{{ item }}" {% if current_type == item %}selected{% endif %}>{{ item|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="status">
+          <option value="">All Status</option>
+          <option value="active" {% if current_status == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="qr_status">
+          <option value="">All QR</option>
+          <option value="generated" {% if current_qr_status == 'generated' %}selected{% endif %}>Generated</option>
+          <option value="pending" {% if current_qr_status == 'pending' %}selected{% endif %}>Pending</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-secondary" type="submit">Search</button>
+      </div>
+    </form>
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>User ID</th>
+            <th>Photo</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Mobile</th>
+            <th>Type</th>
+            <th>Branch</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>QR Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ display_code(u[0]) }}</td>
+            <td>
+              {% if u[10] %}
+              <img src="{{ url_for('user.uploads', filename=u[10]) }}" alt="Photo" width="42" height="42" class="rounded-circle object-fit-cover">
+              {% else %}
+              <span class="text-muted">No Photo</span>
+              {% endif %}
+            </td>
+            <td>{{ u[1] }}</td>
+            <td>{{ u[2] or '-' }}</td>
+            <td>{{ u[3] or '-' }}</td>
+            <td>{{ u[4] }}</td>
+            <td>{{ u[5] or '-' }}</td>
+            <td>{{ u[6] or '-' }}</td>
+            <td><span class="badge {% if u[8] %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ 'Active' if u[8] else 'Inactive' }}</span></td>
+            <td><span class="badge {% if u[7] %}text-bg-primary{% else %}text-bg-warning{% endif %}">{{ 'Generated' if u[7] else 'Pending' }}</span></td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                <a class="btn btn-sm btn-info" href="{{ url_for('admin.view_user', uid=u[0]) }}">View</a>
+                <a class="btn btn-sm btn-warning" href="{{ url_for('admin.edit_user', uid=u[0]) }}">Edit</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.toggle_user', uid=u[0]) }}">{{ 'Deactivate' if u[8] else 'Activate' }}</a>
+                <a class="btn btn-sm btn-secondary" href="{{ url_for('admin.generate_user_qr', uid=u[0]) }}">Generate QR</a>
+                <form method="post" action="{{ url_for('admin.delete_user', uid=u[0]) }}" onsubmit="return confirm('Delete this user?');">
+                  <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="11" class="text-center text-muted py-4">No records found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="text-muted small">Page {{ pagination.page }} of {{ pagination.total_pages }} | Total {{ pagination.total }} users</div>
+      <nav aria-label="User pagination">
+        <ul class="pagination mb-0">
+          <li class="page-item {% if pagination.page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.users', q=q, user_type=current_type, status=current_status, qr_status=current_qr_status, page=pagination.page - 1) }}">Previous</a>
+          </li>
+          {% for page_no in range(1, pagination.total_pages + 1) %}
+          <li class="page-item {% if page_no == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.users', q=q, user_type=current_type, status=current_status, qr_status=current_qr_status, page=page_no) }}">{{ page_no }}</a>
+          </li>
+          {% endfor %}
+          <li class="page-item {% if pagination.page >= pagination.total_pages %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.users', q=q, user_type=current_type, status=current_status, qr_status=current_qr_status, page=pagination.page + 1) }}">Next</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+{% endblock %}

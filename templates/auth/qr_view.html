@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center py-3 qr-card-page">
+  <div class="col-lg-8 qr-card-shell">
+    <div class="auth-card qr-card-panel p-4 p-lg-5">
+      <div class="qr-card-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="qr-card-title mb-1">Your QR Card</h3>
+          <p class="qr-card-subtitle mb-0">Download, print or share your card securely.</p>
+        </div>
+        <a class="btn btn-outline-primary qr-back-btn" href="{{ url_for('auth.dashboard') }}">Back</a>
+      </div>
+      <div class="qr-visual text-center">
+        {% if qr_path %}
+          <div class="qr-image-wrap">
+            <img src="{{ url_for('static', filename=qr_path) }}" alt="QR Code" class="img-fluid">
+          </div>
+          {% if scan_url %}
+          <div class="qr-link-box mt-3">
+            <div class="qr-link-label">QR Scan Link</div>
+            <a href="{{ scan_url }}" target="_blank" rel="noopener">{{ scan_url }}</a>
+          </div>
+          {% endif %}
+        {% else %}
+          <p class="text-muted mb-0">No QR generated yet.</p>
+        {% endif %}
+      </div>
+      <div class="qr-actions mt-4">
+        {% if qr_path %}
+        <a class="btn btn-primary" href="{{ url_for('static', filename=qr_path) }}" download="lifeshield_qr.png">Download PNG</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('auth.download_pdf') }}">Download PDF</a>
+        <a class="btn btn-outline-secondary" href="javascript:window.print()">Print QR</a>
+        {% else %}
+        <a class="btn btn-primary" href="{{ url_for('auth.generate_qr') }}">Generate QR</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

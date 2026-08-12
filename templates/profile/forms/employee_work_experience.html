@@ -1,0 +1,36 @@
+<form method="post" action="{{ url_for('employee.create_employee_experience') }}" class="row g-3 mt-1 border rounded p-3 mb-3">
+  <div class="col-md-6"><label class="form-label">Company Name</label><input class="form-control" name="company_name"></div>
+  <div class="col-md-6"><label class="form-label">Job Title</label><input class="form-control" name="job_title"></div>
+  <div class="col-md-6"><label class="form-label">Employment Type</label><input class="form-control" name="employment_type"></div>
+  <div class="col-md-6"><label class="form-label">Location</label><input class="form-control" name="location"></div>
+  <div class="col-md-6"><label class="form-label">Start Date</label><input type="date" class="form-control" name="start_date"></div>
+  <div class="col-md-6"><label class="form-label">End Date</label><input type="date" class="form-control" name="end_date"></div>
+  <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
+  <div class="col-12 form-check ms-2">
+    <input class="form-check-input" type="checkbox" name="is_current" value="1" id="is_current_new">
+    <label class="form-check-label" for="is_current_new">Current Job</label>
+  </div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Add Experience</button></div>
+</form>
+
+{% for experience in experiences %}
+<form method="post" action="{{ url_for('employee.edit_employee_experience', experience_id=experience.id) }}" class="row g-3 border rounded p-3 mb-3">
+  <div class="col-md-6"><label class="form-label">Company Name</label><input class="form-control" name="company_name" value="{{ experience.company_name }}"></div>
+  <div class="col-md-6"><label class="form-label">Job Title</label><input class="form-control" name="job_title" value="{{ experience.job_title }}"></div>
+  <div class="col-md-6"><label class="form-label">Employment Type</label><input class="form-control" name="employment_type" value="{{ experience.employment_type or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Location</label><input class="form-control" name="location" value="{{ experience.location or '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Start Date</label><input type="date" class="form-control" name="start_date" value="{{ experience.start_date }}"></div>
+  <div class="col-md-6"><label class="form-label">End Date</label><input type="date" class="form-control" name="end_date" value="{{ experience.end_date }}"></div>
+  <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ experience.description or '' }}</textarea></div>
+  <div class="col-12 form-check ms-2">
+    <input class="form-check-input" type="checkbox" name="is_current" value="1" id="is_current_{{ experience.id }}" {% if experience.is_current %}checked{% endif %}>
+    <label class="form-check-label" for="is_current_{{ experience.id }}">Current Job</label>
+  </div>
+  <div class="col-12 d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Update</button>
+  </div>
+</form>
+<form method="post" action="{{ url_for('employee.delete_employee_experience', experience_id=experience.id) }}" class="mb-3">
+  <button class="btn btn-outline-danger btn-sm" type="submit">Delete Experience</button>
+</form>
+{% endfor %}

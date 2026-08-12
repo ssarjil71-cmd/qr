@@ -1,0 +1,189 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  /* Enterprise Page System */
+  .enterprise-page { display: grid; gap: 24px; }
+  .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
+  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+  .enterprise-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
+  .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
+  .enterprise-btn-primary { border-color: var(--primary-color); background: var(--primary-color); color: #fff; }
+  .enterprise-btn-primary:hover { border-color: var(--primary-hover); background: var(--primary-hover); color: #fff; }
+  .enterprise-control { min-height: 48px; border-radius: 12px; border-color: var(--border-color); font-size: 14px; }
+  .enterprise-control:focus { border-color: rgba(37, 99, 235, .45); box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+  .toolbar-card { display: grid; grid-template-columns: minmax(280px, 1fr) 160px 160px auto auto; gap: 8px; align-items: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .toolbar-search { position: relative; }
+  .toolbar-search i { position: absolute; top: 50%; left: 16px; color: var(--text-secondary); transform: translateY(-50%); }
+  .toolbar-search .form-control { padding-left: 42px; }
+  .data-grid-card { overflow: hidden; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .premium-table-wrap { overflow: auto; }
+  .premium-table { min-width: 1160px; margin: 0; color: var(--text-primary); font-size: 14px; }
+  .premium-table thead th { position: sticky; top: 0; z-index: 2; height: 48px; padding: 0 16px; border-bottom: 1px solid var(--border-color); background: #F1F5F9; color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .premium-table tbody tr { height: 56px; border-bottom: 1px solid #EEF2F7; transition: var(--transition-fast); }
+  .premium-table tbody tr:nth-child(even) { background: #FCFCFD; }
+  .premium-table tbody tr:hover { background: #EFF6FF; }
+  .premium-table td { padding: 12px 16px; vertical-align: middle; }
+  .entity-cell { display: flex; align-items: center; gap: 12px; min-width: 240px; }
+  .entity-avatar { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 38px; border-radius: 999px; background: #EFF6FF; color: var(--primary-color); font-weight: 800; }
+  .entity-name { font-weight: 800; }
+  .entity-meta { color: var(--text-secondary); font-size: 13px; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+  .badge-active { background: rgba(16, 185, 129, .12); color: #047857; }
+  .badge-inactive { background: #F1F5F9; color: #475569; }
+  .action-menu-btn { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); border-radius: 10px; background: #fff; color: var(--text-secondary); transition: var(--transition-fast); }
+  .action-menu-btn:hover, .action-menu-btn:focus { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, .10); }
+  .action-dropdown { min-width: 210px; padding: 8px; border: 1px solid var(--border-color); border-radius: 16px; box-shadow: 0 24px 60px rgba(15, 23, 42, .14); }
+  .action-dropdown .dropdown-item { display: flex; align-items: center; gap: 10px; min-height: 40px; border-radius: 10px; font-size: 14px; }
+  .action-dropdown .dropdown-item:hover { background: #EFF6FF; color: var(--primary-color); }
+  .dropdown-danger { color: #EF4444; }
+  .dropdown-danger:hover { background: rgba(239, 68, 68, .06) !important; color: #DC2626 !important; }
+  .data-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 13px; }
+  .modern-pagination { gap: 4px; }
+  .modern-pagination .page-link { min-width: 38px; border-radius: 10px; border-color: var(--border-color); color: var(--text-secondary); text-align: center; }
+  .modern-pagination .page-item.active .page-link { border-color: var(--primary-color); background: var(--primary-color); color: #fff; }
+  .empty-state { display: grid; place-items: center; gap: 12px; padding: 72px 24px; text-align: center; }
+  .empty-state-icon { width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; background: #EFF6FF; color: var(--primary-color); font-size: 28px; }
+  @media (max-width: 1200px) { .toolbar-card { grid-template-columns: repeat(2, minmax(0, 1fr)); } .toolbar-search { grid-column: span 2; } }
+  @media (max-width: 768px) { .enterprise-header { align-items: flex-start; flex-direction: column; } .enterprise-title { font-size: 30px; } .toolbar-card { grid-template-columns: 1fr; } .toolbar-search { grid-column: auto; } .data-footer { align-items: flex-start; flex-direction: column; } }
+</style>
+
+<div class="enterprise-page">
+  <!-- Page Header -->
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">Organizations</h1>
+      <p class="enterprise-subtitle">Search, view, edit, activate, and delete organizations.</p>
+    </div>
+    <div class="enterprise-actions">
+      <a class="btn enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.organization_create') }}"><i class="bi bi-plus-lg me-2"></i>Create Organization</a>
+      <button class="btn enterprise-btn" type="button"><i class="bi bi-download me-2"></i>Export</button>
+      <a class="btn enterprise-btn" href="{{ url_for('superadmin.organizations_list') }}"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</a>
+    </div>
+  </div>
+
+  <!-- Search Toolbar -->
+  <form class="toolbar-card" method="get">
+    <div class="toolbar-search">
+      <i class="bi bi-search"></i>
+      <input class="form-control enterprise-control" name="q" placeholder="Search by name, city, state, or contact data" value="{{ q or '' }}">
+    </div>
+    <select class="form-select enterprise-control" aria-label="Organization type filter">
+      <option selected>All Types</option>
+      <option>Hospital</option>
+      <option>School</option>
+      <option>Corporate</option>
+    </select>
+    <select class="form-select enterprise-control" aria-label="Status filter">
+      <option selected>All Status</option>
+      <option>Active</option>
+      <option>Inactive</option>
+    </select>
+    <button class="btn enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-search me-2"></i>Search</button>
+    <a class="btn enterprise-btn" href="{{ url_for('superadmin.organizations_list') }}"><i class="bi bi-x-lg me-2"></i>Reset</a>
+  </form>
+
+  <!-- Data Grid -->
+  <div class="data-grid-card">
+    {% if orgs %}
+    <div class="premium-table-wrap">
+      <table class="table premium-table align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Organization Name</th>
+            <th>Organization Type</th>
+            <th>Contact Person</th>
+            <th>Mobile</th>
+            <th>City</th>
+            <th>State</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for org in orgs %}
+          <tr>
+            <td>{{ org.id }}</td>
+            <td>
+              <div class="entity-cell">
+                <span class="entity-avatar">{{ org.name[:1] if org.name else 'O' }}</span>
+                <div>
+                  <div class="entity-name">{{ org.name }}</div>
+                  <div class="entity-meta">{{ org.organization_type_label }}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ org.organization_type_label }}</td>
+            <td>{{ org.contact_person or '-' }}</td>
+            <td>{{ org.mobile or '-' }}</td>
+            <td>{{ org.city or '-' }}</td>
+            <td>{{ org.state or '-' }}</td>
+            <td>
+              <span class="status-badge {% if org.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}">
+                <i class="bi {% if org.status == 'active' %}bi-check-circle{% else %}bi-dash-circle{% endif %}"></i>{{ org.status|title }}
+              </span>
+            </td>
+            <td>
+              <div class="dropdown text-end">
+                <button class="action-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Organization actions">
+                  <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end action-dropdown">
+                  <li><a class="dropdown-item" href="{{ url_for('superadmin.organization_view', org_id=org.id) }}"><i class="bi bi-eye"></i>View details</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('superadmin.organization_edit', org_id=org.id) }}"><i class="bi bi-pencil"></i>Edit organization</a></li>
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('superadmin.organization_toggle', org_id=org.id) }}">
+                      <i class="bi {% if org.status == 'active' %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                      {% if org.status == 'active' %}Deactivate{% else %}Activate{% endif %}
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <form method="post" action="{{ url_for('superadmin.organization_delete', org_id=org.id) }}" onsubmit="return confirm('Delete this organization?');">
+                      <button class="dropdown-item dropdown-danger" type="submit"><i class="bi bi-trash3"></i>Delete organization</button>
+                    </form>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="data-footer">
+      <div class="text-muted small">
+        Showing page {{ pagination.page }} of {{ pagination.total_pages }} | Total {{ pagination.total }} organizations
+      </div>
+      <nav aria-label="Organization pagination">
+        <ul class="pagination modern-pagination mb-0">
+          <li class="page-item {% if pagination.page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('superadmin.organizations_list', q=q, page=pagination.page - 1) }}">Previous</a>
+          </li>
+          {% for page_no in range(1, pagination.total_pages + 1) %}
+          <li class="page-item {% if page_no == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('superadmin.organizations_list', q=q, page=page_no) }}">{{ page_no }}</a>
+          </li>
+          {% endfor %}
+          <li class="page-item {% if pagination.page >= pagination.total_pages %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('superadmin.organizations_list', q=q, page=pagination.page + 1) }}">Next</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-buildings"></i></div>
+      <div>
+        <h3 class="h5 fw-bold mb-1">No organizations found</h3>
+        <p class="text-muted mb-0">Create an organization or adjust your search filters.</p>
+      </div>
+      <a class="btn enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.organization_create') }}"><i class="bi bi-plus-lg me-2"></i>Create Organization</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

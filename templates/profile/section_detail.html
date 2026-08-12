@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% from 'profile/components.html' import detail_rows %}
+{% block content %}
+<div class="profile-mobile-shell">
+  <div class="section-detail-head">
+    <a class="section-back-link" href="{{ url_for('employee.employee_dashboard') if profile_type == 'employee' else url_for('user.student_dashboard') }}">&lt; Dashboard</a>
+    <div class="section-detail-title-row">
+      <div>
+        <div class="profile-kicker mb-2">{{ profile_label }} Profile</div>
+        <h3 class="profile-title mb-1">{{ section.title }}</h3>
+      </div>
+      <div class="section-detail-score">
+        {% if section.key == 'projects' %}{{ projects|length }}{% elif section.key == 'certificates' %}{{ certificates|length }}{% elif section.key == 'upload_documents' %}{{ uploaded_documents|length }}{% elif section.key == 'social_links' %}{{ social_links|length }}{% elif section.key == 'work_experience' %}{{ experiences|length }}{% else %}{{ section.completion }}%{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="section-detail-panel">
+    <div class="section-detail-content">
+      {{ detail_rows(section, user, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, social_links=social_links, experiences=experiences) }}
+    </div>
+    <button class="section-detail-edit-btn" type="button" data-bs-toggle="collapse" data-bs-target="#section_edit_form_{{ section.key }}" aria-expanded="false" aria-controls="section_edit_form_{{ section.key }}">
+      Edit
+    </button>
+  </div>
+
+  <div class="collapse mt-3" id="section_edit_form_{{ section.key }}">
+    <div class="section-edit-panel">
+      {% include section.form_template %}
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var collapseEl = document.getElementById('section_edit_form_{{ section.key }}');
+      var detailEl = document.querySelector('.section-detail-content');
+      if (collapseEl && detailEl) {
+        collapseEl.addEventListener('show.bs.collapse', function() {
+          detailEl.classList.add('d-none');
+        });
+        collapseEl.addEventListener('hide.bs.collapse', function() {
+          detailEl.classList.remove('d-none');
+        });
+      }
+    });
+  </script>
+</div>
+{% endblock %}

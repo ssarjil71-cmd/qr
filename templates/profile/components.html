@@ -1,0 +1,239 @@
+{% macro profile_header(profile_dashboard_title, profile_dashboard_description, user, overall_completion) %}
+<div class="profile-mobile-shell">
+<div class="profile-page-head d-flex justify-content-between align-items-start mb-3">
+  <button class="mobile-menu-btn" type="button" aria-label="Menu">Menu</button>
+  <div>
+    <div class="profile-kicker mb-2">Welcome back, {{ user.name or 'User' }}</div>
+    <h3 class="profile-title mb-1">Dashboard</h3>
+    <p class="profile-subtitle mb-0">Track and complete your profile sections.</p>
+  </div>
+  <a class="profile-bell-btn" href="{{ url_for('auth.logout') }}" aria-label="Logout">Logout</a>
+</div>
+
+<div class="card profile-summary-card mb-4">
+  <div class="card-body">
+    <div class="row align-items-center g-3">
+      <div class="col-md-2">
+        {% if user.photo %}
+        <img src="{{ url_for('user.uploads', filename=user.photo.replace('static/uploads/', '')) }}" alt="Photo" class="profile-avatar">
+        {% else %}
+        <div class="profile-avatar profile-avatar-empty">{{ (user.name or 'U')[:1] }}</div>
+        {% endif %}
+      </div>
+      <div class="col-md-7">
+        <h4 class="profile-name mb-1">{{ user.name }}</h4>
+        <div class="profile-contact">{{ user.email or '-' }}</div>
+        <div class="profile-contact">{{ user.mobile or '-' }}</div>
+        <div class="profile-status mt-2">QR Status: {{ 'Generated' if user.qr_token else 'Pending' }}</div>
+      </div>
+      <div class="col-md-3">
+        <div class="completion-panel">
+          <div class="small text-muted mb-1">Overall Profile Completion</div>
+          <div class="completion-value">{{ overall_completion }}%</div>
+        </div>
+        <div class="progress mt-2 profile-progress">
+          <div class="progress-bar" role="progressbar" style="width: {{ overall_completion }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro section_card(section, profile_type, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None) %}
+<div class="col-12 col-sm-6 col-xl-4">
+  <div class="summary-card-wrap">
+    <a class="summary-section-card profile-section-{{ section.key }}" href="{{ url_for('employee.employee_section_detail', section_key=section.key) if profile_type == 'employee' else url_for('user.student_section_detail', section_key=section.key) }}">
+      <span class="summary-section-title">{{ section.title }}</span>
+      <span class="summary-section-value">
+        {% if section.key == 'projects' %}{{ projects|length }}{% elif section.key == 'certificates' %}{{ certificates|length }}{% elif section.key == 'upload_documents' %}{{ uploaded_documents|length }}{% elif section.key == 'social_links' %}{{ social_links|length }}{% elif section.key == 'work_experience' %}{{ experiences|length }}{% else %}{{ section.completion }}%{% endif %}
+      </span>
+      <span class="summary-section-chevron">&gt;</span>
+    </a>
+    {% if profile_type == 'student' %}
+    <form method="post" action="{{ url_for('user.update_student_section_visibility', section_key=section.key) }}" class="summary-visibility-form">
+      <input type="hidden" name="is_visible" value="0">
+      <input class="form-check-input js-section-visibility" type="checkbox" name="is_visible" value="1" title="Show on QR scan" aria-label="Show {{ section.title }} on QR scan" {% if section.public_visible %}checked{% endif %}>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro detail_rows(section, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None) %}
+{% if section.key == 'basic_information' %}
+  <div class="detail-row"><span>Name</span><strong>{{ user.name or '-' }}</strong></div>
+  <div class="detail-row"><span>Mobile</span><strong>{{ user.mobile or '-' }}</strong></div>
+  <div class="detail-row"><span>Email</span><strong>{{ user.email or '-' }}</strong></div>
+  <div class="detail-row"><span>Date of Birth</span><strong>{{ user.dob or '-' }}</strong></div>
+  <div class="detail-row"><span>Gender</span><strong>{{ user.gender or '-' }}</strong></div>
+  <div class="detail-row"><span>Blood Group</span><strong>{{ user.blood_group or '-' }}</strong></div>
+  <div class="detail-row"><span>Nationality</span><strong>{{ user.nationality or '-' }}</strong></div>
+  <div class="detail-row"><span>City</span><strong>{{ user.city or '-' }}</strong></div>
+  <div class="detail-row"><span>State</span><strong>{{ user.state or '-' }}</strong></div>
+  <div class="detail-row"><span>PIN Code</span><strong>{{ user.pin_code or '-' }}</strong></div>
+  <div class="detail-row detail-row-block"><span>Address</span><strong>{{ user.address or '-' }}</strong></div>
+{% elif section.key == 'academic_information' %}
+  <div class="detail-row"><span>College</span><strong>{{ student_profile.get('college', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Branch</span><strong>{{ student_profile.get('branch', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Year</span><strong>{{ student_profile.get('year', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Roll Number</span><strong>{{ student_profile.get('roll_number', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Bio</span><strong>{{ student_profile.get('bio', '-') or '-' }}</strong></div>
+{% elif section.key == 'emergency_contact' %}
+  <div class="detail-section"><span class="detail-section-title">Primary Contact</span></div>
+  <div class="detail-row"><span>Name</span><strong>{{ user.emergency_primary_contact_name or '-' }}</strong></div>
+  <div class="detail-row"><span>Relation</span><strong>{{ user.emergency_primary_contact_relation or '-' }}</strong></div>
+  <div class="detail-row"><span>Mobile</span><strong>{{ user.emergency_primary_contact_mobile or '-' }}</strong></div>
+  <div class="detail-row"><span>WhatsApp</span><strong>{{ user.emergency_primary_contact_whatsapp or '-' }}</strong></div>
+  <div class="detail-section"><span class="detail-section-title">Secondary Contact</span></div>
+  <div class="detail-row"><span>Name</span><strong>{{ user.emergency_secondary_contact_name or '-' }}</strong></div>
+  <div class="detail-row"><span>Relation</span><strong>{{ user.emergency_secondary_contact_relation or '-' }}</strong></div>
+  <div class="detail-row"><span>Mobile</span><strong>{{ user.emergency_secondary_contact_mobile or '-' }}</strong></div>
+  <div class="detail-section"><span class="detail-section-title">Family Doctor</span></div>
+  <div class="detail-row"><span>Name</span><strong>{{ user.emergency_doctor_name or '-' }}</strong></div>
+  <div class="detail-row"><span>Phone</span><strong>{{ user.emergency_doctor_phone or '-' }}</strong></div>
+  <div class="detail-section"><span class="detail-section-title">Address</span></div>
+  <div class="detail-row detail-row-block"><span>Address</span><strong>{{ user.emergency_address or '-' }}</strong></div>
+  <div class="detail-section"><span class="detail-section-title">Emergency Note</span></div>
+  <div class="detail-row detail-row-block"><span>Note</span><strong>{{ user.emergency_note or '-' }}</strong></div>
+{% elif section.key == 'medical_report' %}
+  <div class="detail-row detail-row-block"><span>Medical Report</span><strong>{{ user.medical_notes or '-' }}</strong></div>
+{% elif section.key == 'company_information' %}
+  <div class="detail-row"><span>Company</span><strong>{{ employee_profile.get('company_name', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Employee Code</span><strong>{{ employee_profile.get('employee_code', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Designation</span><strong>{{ employee_profile.get('designation', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Employment Type</span><strong>{{ employee_profile.get('employment_type', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Office Location</span><strong>{{ employee_profile.get('office_location', '-') or '-' }}</strong></div>
+  <div class="detail-row"><span>Joining Date</span><strong>{{ employee_profile.get('joining_date', '-') or '-' }}</strong></div>
+{% elif section.key == 'work_experience' %}
+  {% if experiences %}
+    {% for experience in experiences %}
+      <div class="detail-list-item">
+        <strong>{{ experience.job_title }}</strong>
+        <span>{{ experience.company_name }}{% if experience.employment_type %} / {{ experience.employment_type }}{% endif %}</span>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-card-text">No work experience added.</div>
+  {% endif %}
+{% elif section.key == 'skills' %}
+  <div class="detail-row detail-row-block"><span>Skills</span><strong>{{ user.skills or '-' }}</strong></div>
+{% elif section.key == 'projects' %}
+  {% if projects %}
+    {% for project in projects %}
+      <div class="detail-list-item">
+        <strong>{{ project.title }}</strong>
+        <span>{{ project.technologies or '-' }}</span>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-card-text">No projects added.</div>
+  {% endif %}
+{% elif section.key == 'certificates' %}
+  {% if certificates %}
+    {% for certificate in certificates %}
+      <div class="detail-list-item">
+        <strong>{{ certificate.title }}</strong>
+        <span>{{ certificate.issuer or '-' }}</span>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-card-text">No certificates added.</div>
+  {% endif %}
+{% elif section.key == 'upload_documents' %}
+  {% if uploaded_documents %}
+    {% for document in uploaded_documents %}
+      <div class="detail-list-item">
+        <strong>{{ document.title }}</strong>
+        <span>{{ document.document_type.replace('_', ' ').title() }}</span>
+        {% if document.file_path %}
+        <a class="detail-download-link" href="{{ url_for('user.uploads', filename=document.file_path.replace('static/uploads/', '')) }}" target="_blank">View PDF</a>
+        {% endif %}
+        <form method="post" action="{{ url_for('user.delete_student_document', document_id=document.id) }}">
+          <button class="detail-delete-btn" type="submit">Delete</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-card-text">No PDF documents uploaded.</div>
+  {% endif %}
+{% elif section.key == 'resume' %}
+  <div class="resume-preview">
+    <div class="resume-preview-head">
+      <h4>{{ user.name or 'Your Name' }}</h4>
+      <p>{{ resume_profile.get('headline') or resume_profile.get('preferred_role') or 'Professional Resume' }}</p>
+      <div>{{ user.email or '-' }} | {{ user.mobile or '-' }}{% if resume_profile.get('current_city') %} | {{ resume_profile.get('current_city') }}{% endif %}</div>
+    </div>
+    <div class="resume-preview-section">
+      <h5>Professional Summary</h5>
+      <p>{{ resume_profile.get('summary') or '-' }}</p>
+    </div>
+    <div class="resume-preview-section">
+      <h5>Education</h5>
+      <p>{{ student_profile.get('college', '-') or '-' }}{% if student_profile.get('branch') %} | {{ student_profile.get('branch') }}{% endif %}{% if student_profile.get('year') %} | {{ student_profile.get('year') }}{% endif %}</p>
+    </div>
+    <div class="resume-preview-section">
+      <h5>Skills</h5>
+      <p>{{ user.skills or '-' }}</p>
+    </div>
+    <div class="resume-preview-section">
+      <h5>Projects</h5>
+      {% if projects %}
+        {% for project in projects[:3] %}
+        <p><strong>{{ project.title }}</strong>{% if project.technologies %} - {{ project.technologies }}{% endif %}</p>
+        {% endfor %}
+      {% else %}
+        <p>-</p>
+      {% endif %}
+    </div>
+    <div class="resume-preview-actions">
+      {% if profile_type == 'student' %}
+      <a class="detail-download-link" href="{{ url_for('user.download_student_resume') }}">Download Resume</a>
+      {% endif %}
+      {% if resume_profile.get('document_url') %}
+      <a class="detail-download-link" href="{{ resume_profile.get('document_url') }}" target="_blank" rel="noopener">Open Link</a>
+      {% endif %}
+    </div>
+  </div>
+{% elif section.key == 'social_links' %}
+  {% if social_links %}
+    {% for link in social_links %}
+      <div class="detail-row"><span>{{ link.platform }}</span><strong>{{ link.profile_url }}</strong></div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-card-text">No social links added.</div>
+  {% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro section_visibility_script() %}
+<a class="profile-fab" href="{{ url_for('auth.complete_profile') }}" aria-label="Complete Profile">+</a>
+<script>
+  document.querySelectorAll('.js-section-visibility').forEach((checkbox) => {
+    checkbox.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+    checkbox.addEventListener('change', async () => {
+      const form = checkbox.form;
+      const previous = !checkbox.checked;
+      checkbox.disabled = true;
+      try {
+        const body = new FormData(form);
+        body.set('is_visible', checkbox.checked ? '1' : '0');
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!response.ok) {
+          checkbox.checked = previous;
+        }
+      } catch (error) {
+        checkbox.checked = previous;
+      } finally {
+        checkbox.disabled = false;
+      }
+    });
+  });
+</script>
+{% endmacro %}
