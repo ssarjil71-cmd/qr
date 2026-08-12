@@ -1,0 +1,29 @@
+# Python virtual environments
+venv/
+.venv/
+.venv-1/
+.venv*/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment / secrets
+.env
+.env.*
+
+# VS Code
+.vscode/
+
+# Local database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Uploads
+uploads/
