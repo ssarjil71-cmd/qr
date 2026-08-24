@@ -15,6 +15,8 @@ from models.student_profile import (
     StudentProfileModel,
 )
 from services.profile_engine import ProfileEngine
+from services.db import get_conn
+from models.card_permission import CardPermissionModel, card_permission_required
 
 user_bp = Blueprint('user', __name__, template_folder='../templates')
 
@@ -148,6 +150,45 @@ def uploads(filename):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
 
+@user_bp.route('/api/states')
+def api_states():
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute('SELECT id, name FROM states ORDER BY name ASC')
+        rows = cur.fetchall()
+        items = [{'id': r[0], 'name': r[1]} for r in rows]
+        return jsonify(items)
+    finally:
+        cur.close()
+
+
+@user_bp.route('/api/districts/<int:state_id>')
+def api_districts(state_id):
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute('SELECT id, name FROM districts WHERE state_id=%s ORDER BY name ASC', (state_id,))
+        rows = cur.fetchall()
+        items = [{'id': r[0], 'name': r[1]} for r in rows]
+        return jsonify(items)
+    finally:
+        cur.close()
+
+
+@user_bp.route('/api/talukas/<int:district_id>')
+def api_talukas(district_id):
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute('SELECT id, name FROM talukas WHERE district_id=%s ORDER BY name ASC', (district_id,))
+        rows = cur.fetchall()
+        items = [{'id': r[0], 'name': r[1]} for r in rows]
+        return jsonify(items)
+    finally:
+        cur.close()
+
+
 @user_bp.route('/student/dashboard')
 @login_required
 def student_dashboard():
@@ -159,6 +200,12 @@ def student_dashboard():
     if not data:
         flash('Student profile not found', 'warning')
         return redirect(url_for('auth.dashboard'))
+    permissions = CardPermissionModel.get_effective_permissions(user_id)
+    data['profile_sections'] = [
+        section for section in data.get('profile_sections', [])
+        if permissions.get(section.get('key'), {}).get('is_enabled')
+    ]
+    data['profile_sections'].sort(key=lambda section: permissions.get(section.get('key'), {}).get('display_order', 0))
     return render_template('profile/dashboard.html', **data)
 
 
@@ -170,6 +217,9 @@ def student_section_detail(section_key):
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
     data = ProfileEngine.build_dashboard_context('student', StudentProfileModel.get_student_dashboard_data(user_id))
+    if not CardPermissionModel.is_enabled(user_id, section_key):
+        flash('Feature not available for this account', 'warning')
+        return redirect(url_for('user.student_dashboard'))
     section = next((item for item in data.get('profile_sections', []) if item.get('key') == section_key), None)
     if not section:
         flash('Profile section not found', 'warning')
@@ -179,6 +229,7 @@ def student_section_detail(section_key):
 
 @user_bp.route('/student/profile/basic-information', methods=['POST'])
 @login_required
+@card_permission_required('basic_information')
 def update_student_basic_information():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -206,6 +257,48 @@ def update_student_basic_information():
             photo_path = os.path.join('static', 'uploads', 'profiles', filename).replace('\\', '/')
 
     existing_user = StudentProfileModel._get_user(user_id)
+
+    # Map incoming state_id/district_id/taluka_id to validations and store IDs.
+    state_id = request.form.get('state_id')
+    district_id = request.form.get('district_id')
+    taluka_id = request.form.get('taluka_id')
+    # Default to legacy state name if no state_id provided
+    state_name = request.form.get('state') or (existing_user.get('state') if existing_user else None)
+
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        if state_id:
+            cur.execute('SELECT name FROM states WHERE id=%s', (state_id,))
+            row = cur.fetchone()
+            if row:
+                state_name = row[0]
+            else:
+                flash('Selected state not found', 'warning')
+                return redirect(url_for('user.student_section_detail', section_key='basic_information'))
+
+        # Validate district belongs to state (if provided)
+        if district_id:
+            if not state_id:
+                # try to resolve state_id from state_name
+                cur.execute('SELECT id FROM states WHERE name=%s', (state_name,))
+                srow = cur.fetchone()
+                state_id = srow[0] if srow else None
+            if state_id:
+                cur.execute('SELECT COUNT(*) FROM districts WHERE id=%s AND state_id=%s', (district_id, state_id))
+                if cur.fetchone()[0] == 0:
+                    flash('Selected district does not belong to the selected state', 'warning')
+                    return redirect(url_for('user.student_section_detail', section_key='basic_information'))
+
+        # Validate taluka belongs to district (if provided)
+        if taluka_id:
+            cur.execute('SELECT COUNT(*) FROM talukas WHERE id=%s AND district_id=%s', (taluka_id, district_id))
+            if cur.fetchone()[0] == 0:
+                flash('Selected taluka does not belong to the selected district', 'warning')
+                return redirect(url_for('user.student_section_detail', section_key='basic_information'))
+    finally:
+        cur.close()
+
     StudentProfileModel.update_basic_information(
         user_id,
         {
@@ -217,9 +310,11 @@ def update_student_basic_information():
             'blood_group': request.form.get('blood_group'),
             'address': request.form.get('address'),
             'city': request.form.get('city'),
-            'state': request.form.get('state'),
+            'state': state_name,
             'pin_code': request.form.get('pin_code'),
             'nationality': request.form.get('nationality'),
+            'district_id': int(district_id) if district_id else None,
+            'taluka_id': int(taluka_id) if taluka_id else None,
             'photo': photo_path or (existing_user.get('photo') if existing_user else None),
         },
     )
@@ -230,6 +325,7 @@ def update_student_basic_information():
 
 @user_bp.route('/student/profile/emergency-contact', methods=['POST'])
 @login_required
+@card_permission_required('emergency_contact')
 def update_student_emergency_contact():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -257,17 +353,127 @@ def update_student_emergency_contact():
 
 @user_bp.route('/student/profile/medical-report', methods=['POST'])
 @login_required
+@card_permission_required('medical_report')
 def update_student_medical_report():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
+    medicines = []
+    for name, dosage, frequency, purpose in zip(
+        request.form.getlist('medicine_name[]'),
+        request.form.getlist('dosage[]'),
+        request.form.getlist('frequency[]'),
+        request.form.getlist('purpose[]'),
+    ):
+        medicines.append({
+            'medicine_name': (name or '').strip(),
+            'dosage': (dosage or '').strip(),
+            'frequency': (frequency or '').strip(),
+            'purpose': (purpose or '').strip(),
+        })
+    vaccinations = []
+    for name, dose, vaccination_date, next_due_date in zip(
+        request.form.getlist('vaccine_name[]'),
+        request.form.getlist('dose[]'),
+        request.form.getlist('vaccination_date[]'),
+        request.form.getlist('next_due_date[]'),
+    ):
+        vaccinations.append({
+            'vaccine_name': (name or '').strip(),
+            'dose': (dose or '').strip(),
+            'vaccination_date': vaccination_date,
+            'next_due_date': next_due_date,
+        })
+
+    medical_document_types = {
+        'blood_test_report',
+        'x_ray',
+        'ecg',
+        'prescription',
+        'medical_certificate',
+        'other_medical_report',
+    }
+    documents = []
+    files = request.files.getlist('medical_file[]')
+    names = request.form.getlist('document_name[]')
+    types = request.form.getlist('document_type[]')
+    dates = request.form.getlist('document_date[]')
+    descriptions = request.form.getlist('description[]')
+    allowed_ext = {'.pdf', '.jpg', '.jpeg', '.png', '.webp', '.doc', '.docx'}
+    upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'medical_documents')
+    os.makedirs(upload_dir, exist_ok=True)
+    for index, document_file in enumerate(files):
+        if not document_file or not document_file.filename:
+            continue
+        document_type = types[index] if index < len(types) else ''
+        if document_type not in medical_document_types:
+            flash('Select a valid medical document type', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='medical_report'))
+        original_name = document_file.filename or ''
+        extension = os.path.splitext(original_name)[1].lower()
+        if extension not in allowed_ext:
+            flash('Medical documents must be PDF, image, DOC, or DOCX files', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='medical_report'))
+        safe_stem = secure_filename(os.path.splitext(original_name)[0]) or document_type
+        filename = f"user_{user_id}_{document_type}_{safe_stem}_{os.urandom(4).hex()}{extension}"
+        save_path = os.path.join(upload_dir, filename)
+        document_file.save(save_path)
+        documents.append({
+            'document_name': (names[index] if index < len(names) else '') or safe_stem,
+            'document_type': document_type,
+            'document_date': dates[index] if index < len(dates) else None,
+            'description': descriptions[index] if index < len(descriptions) else None,
+            'file_path': os.path.join('static', 'uploads', 'medical_documents', filename).replace('\\', '/'),
+        })
+
     StudentProfileModel.update_medical_report(
         user_id,
-        {'medical_notes': request.form.get('medical_notes')},
+        {
+            'blood_group': request.form.get('blood_group'),
+            'height': request.form.get('height'),
+            'weight': request.form.get('weight'),
+            'blood_pressure': request.form.get('blood_pressure'),
+            'pulse_rate': request.form.get('pulse_rate'),
+            'spo2': request.form.get('spo2'),
+            'body_temperature': request.form.get('body_temperature'),
+            'last_health_checkup_date': request.form.get('last_health_checkup_date'),
+            'has_allergies': request.form.get('has_allergies'),
+            'drug_allergies': request.form.get('drug_allergies'),
+            'food_allergies': request.form.get('food_allergies'),
+            'other_allergies': request.form.get('other_allergies'),
+            'allergy_details': request.form.get('allergy_details'),
+            'diabetes': request.form.get('diabetes'),
+            'hypertension': request.form.get('hypertension'),
+            'heart_disease': request.form.get('heart_disease'),
+            'asthma': request.form.get('asthma'),
+            'epilepsy': request.form.get('epilepsy'),
+            'kidney_disease': request.form.get('kidney_disease'),
+            'other_medical_condition': request.form.get('other_medical_condition'),
+            'previous_surgery': request.form.get('previous_surgery'),
+            'surgery_details': request.form.get('surgery_details'),
+            'currently_taking_medicines': request.form.get('currently_taking_medicines'),
+            'vaccination_status': request.form.get('vaccination_status'),
+            'medicines': medicines,
+            'vaccinations': vaccinations,
+            'documents': documents,
+        },
     )
     flash('Medical Report saved successfully', 'success')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='medical_report'))
+
+
+@user_bp.route('/student/profile/medical-report/document/<int:document_id>/delete', methods=['POST'])
+@login_required
+@card_permission_required('medical_report')
+def delete_student_medical_document(document_id):
+    user_id = session.get('user_id')
+    if not StudentProfileModel.has_student_profile(user_id):
+        flash('Student profile is not available for this account', 'warning')
+        return redirect(url_for('auth.dashboard'))
+    deleted = StudentProfileModel.delete_medical_document(user_id, document_id)
+    flash('Medical document deleted successfully' if deleted else 'Medical document not found', 'success' if deleted else 'warning')
+    return redirect(url_for('user.student_section_detail', section_key='medical_report'))
 
 
 @user_bp.route('/student/profile/visibility/<section_key>', methods=['POST'])
@@ -291,6 +497,7 @@ def update_student_section_visibility(section_key):
 
 @user_bp.route('/student/profile/academic-information', methods=['POST'])
 @login_required
+@card_permission_required('academic_information')
 def update_student_academic_information():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -315,6 +522,7 @@ def update_student_academic_information():
 
 @user_bp.route('/student/profile/academic-information/delete', methods=['POST'])
 @login_required
+@card_permission_required('academic_information')
 def delete_student_academic_information():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -327,18 +535,145 @@ def delete_student_academic_information():
 
 @user_bp.route('/student/profile/skills', methods=['POST'])
 @login_required
+@card_permission_required('skills')
 def update_student_skills():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
-    StudentProfileModel.update_skills(user_id, {'skills': request.form.get('skills')})
-    flash('Skills saved successfully', 'success')
-    return redirect(url_for('user.student_dashboard'))
+    categories = {
+        'Programming Language', 'Framework', 'Database', 'Web Technology', 'Mobile Development',
+        'Cloud', 'DevOps', 'Cyber Security', 'Data Science / AI', 'Testing', 'Other',
+    }
+    proficiency_levels = {'Beginner', 'Intermediate', 'Advanced', 'Expert'}
+    language_levels = {'Basic', 'Good', 'Excellent', ''}
+
+    def clean_years(value):
+        value = (value or '').strip()
+        if not value:
+            return ''
+        try:
+            number = float(value)
+        except ValueError:
+            return None
+        return value if number >= 0 else None
+
+    technical_skills = []
+    seen_technical = set()
+    for name, category, proficiency, years in zip(
+        request.form.getlist('technical_skill_name[]'),
+        request.form.getlist('technical_skill_category[]'),
+        request.form.getlist('technical_proficiency_level[]'),
+        request.form.getlist('technical_years_experience[]'),
+    ):
+        name = (name or '').strip()
+        category = (category or '').strip()
+        proficiency = (proficiency or '').strip()
+        years = clean_years(years)
+        if not any([name, category, proficiency, years]):
+            continue
+        if not name:
+            flash('Technical skill name cannot be empty', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        if category not in categories:
+            flash('Select a valid technical skill category', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        if proficiency not in proficiency_levels:
+            flash('Select a valid technical skill proficiency level', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        if years is None:
+            flash('Years of experience cannot be negative', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        key = (name.lower(), category.lower())
+        if key in seen_technical:
+            flash('Duplicate technical skills are not allowed', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        seen_technical.add(key)
+        technical_skills.append({'skill_name': name, 'skill_category': category, 'proficiency_level': proficiency, 'years_experience': years})
+
+    soft_skills = []
+    seen_soft = set()
+    for value in request.form.getlist('soft_skills[]') + request.form.getlist('custom_soft_skills[]'):
+        name = (value or '').strip()
+        if not name:
+            continue
+        key = name.lower()
+        if key in seen_soft:
+            continue
+        seen_soft.add(key)
+        soft_skills.append({'skill_name': name})
+
+    skill_tools = []
+    seen_tools = set()
+    for name, proficiency, years in zip(
+        request.form.getlist('tool_name[]'),
+        request.form.getlist('tool_proficiency_level[]'),
+        request.form.getlist('tool_years_experience[]'),
+    ):
+        name = (name or '').strip()
+        proficiency = (proficiency or '').strip()
+        years = clean_years(years)
+        if not any([name, proficiency, years]):
+            continue
+        if not name:
+            flash('Tool/Software name cannot be empty', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        if proficiency and proficiency not in proficiency_levels:
+            flash('Select a valid tool proficiency level', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        if years is None:
+            flash('Years of experience cannot be negative', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        key = name.lower()
+        if key in seen_tools:
+            flash('Duplicate tools are not allowed', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        seen_tools.add(key)
+        skill_tools.append({'tool_name': name, 'proficiency_level': proficiency, 'years_experience': years})
+
+    languages = []
+    seen_languages = set()
+    for name, reading, writing, speaking in zip(
+        request.form.getlist('language_name[]'),
+        request.form.getlist('reading_level[]'),
+        request.form.getlist('writing_level[]'),
+        request.form.getlist('speaking_level[]'),
+    ):
+        name = (name or '').strip()
+        reading = (reading or '').strip()
+        writing = (writing or '').strip()
+        speaking = (speaking or '').strip()
+        if not any([name, reading, writing, speaking]):
+            continue
+        if not name:
+            flash('Language name cannot be empty', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        if reading not in language_levels or writing not in language_levels or speaking not in language_levels:
+            flash('Select valid language levels', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        key = name.lower()
+        if key in seen_languages:
+            flash('Duplicate languages are not allowed', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='skills'))
+        seen_languages.add(key)
+        languages.append({'language_name': name, 'reading_level': reading, 'writing_level': writing, 'speaking_level': speaking})
+
+    success, message = StudentProfileModel.update_skills(
+        user_id,
+        {
+            'technical_skills': technical_skills,
+            'soft_skills': soft_skills,
+            'skill_tools': skill_tools,
+            'languages': languages,
+        },
+    )
+    flash('Skills saved successfully' if success else f'Could not save skills: {message}', 'success' if success else 'warning')
+    return redirect(url_for('user.student_section_detail', section_key='skills'))
 
 
 @user_bp.route('/student/profile/skills/delete', methods=['POST'])
 @login_required
+@card_permission_required('skills')
 def delete_student_skills():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -351,6 +686,7 @@ def delete_student_skills():
 
 @user_bp.route('/student/profile/certificates', methods=['POST'])
 @login_required
+@card_permission_required('certificates')
 def update_student_certificates():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -379,6 +715,7 @@ def update_student_certificates():
 
 @user_bp.route('/student/profile/certificates/<int:certificate_id>', methods=['POST'])
 @login_required
+@card_permission_required('certificates')
 def edit_student_certificate(certificate_id):
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -408,6 +745,7 @@ def edit_student_certificate(certificate_id):
 
 @user_bp.route('/student/profile/certificates/<int:certificate_id>/delete', methods=['POST'])
 @login_required
+@card_permission_required('certificates')
 def delete_student_certificate(certificate_id):
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -420,6 +758,7 @@ def delete_student_certificate(certificate_id):
 
 @user_bp.route('/student/profile/upload-documents', methods=['POST'])
 @login_required
+@card_permission_required('upload_documents')
 def upload_student_document():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -470,6 +809,7 @@ def upload_student_document():
 
 @user_bp.route('/student/profile/upload-documents/<int:document_id>/delete', methods=['POST'])
 @login_required
+@card_permission_required('upload_documents')
 def delete_student_document(document_id):
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -482,6 +822,7 @@ def delete_student_document(document_id):
 
 @user_bp.route('/student/profile/resume', methods=['POST'])
 @login_required
+@card_permission_required('resume')
 def update_student_resume():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -505,6 +846,7 @@ def update_student_resume():
 
 @user_bp.route('/student/profile/resume/download')
 @login_required
+@card_permission_required('resume')
 def download_student_resume():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -536,6 +878,7 @@ def public_download_student_resume(token):
 
 @user_bp.route('/student/profile/resume/delete', methods=['POST'])
 @login_required
+@card_permission_required('resume')
 def delete_student_resume():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -548,6 +891,7 @@ def delete_student_resume():
 
 @user_bp.route('/student/profile/projects', methods=['POST'])
 @login_required
+@card_permission_required('projects')
 def create_student_project():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -575,6 +919,7 @@ def create_student_project():
 
 @user_bp.route('/student/profile/projects/<int:project_id>', methods=['POST'])
 @login_required
+@card_permission_required('projects')
 def edit_student_project(project_id):
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -603,6 +948,7 @@ def edit_student_project(project_id):
 
 @user_bp.route('/student/profile/projects/<int:project_id>/delete', methods=['POST'])
 @login_required
+@card_permission_required('projects')
 def delete_student_project(project_id):
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -615,6 +961,7 @@ def delete_student_project(project_id):
 
 @user_bp.route('/student/profile/social-links', methods=['POST'])
 @login_required
+@card_permission_required('social_links')
 def create_student_social_link():
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -639,6 +986,7 @@ def create_student_social_link():
 
 @user_bp.route('/student/profile/social-links/<int:social_link_id>', methods=['POST'])
 @login_required
+@card_permission_required('social_links')
 def edit_student_social_link(social_link_id):
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):
@@ -664,6 +1012,7 @@ def edit_student_social_link(social_link_id):
 
 @user_bp.route('/student/profile/social-links/<int:social_link_id>/delete', methods=['POST'])
 @login_required
+@card_permission_required('social_links')
 def delete_student_social_link(social_link_id):
     user_id = session.get('user_id')
     if not StudentProfileModel.has_student_profile(user_id):

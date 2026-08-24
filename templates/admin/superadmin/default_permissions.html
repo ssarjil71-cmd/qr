@@ -1,0 +1,36 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  .enterprise-page { display:grid; gap:20px; }
+  .enterprise-title { margin:0; font-size:var(--fs-title); font-weight:800; }
+  .enterprise-subtitle { margin:6px 0 0; color:var(--text-secondary); }
+  .enterprise-btn { min-height:44px; padding:10px 16px; border-radius:12px; border:1px solid var(--border-color); background:#fff; color:var(--text-primary); font-weight:700; text-decoration:none; }
+  .enterprise-btn-primary { border-color:var(--primary-color); background:var(--primary-color); color:#fff; }
+  .config-card { border:1px solid var(--border-color); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(15,23,42,.05); padding:18px; }
+  .feature-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .feature-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; border:1px solid #EEF2F7; border-radius:12px; }
+  @media (max-width:768px){ .feature-list{grid-template-columns:1fr;} .enterprise-title{font-size:30px;} }
+</style>
+<div class="enterprise-page">
+  <div>
+    <h1 class="enterprise-title">Default Card Configuration</h1>
+    <p class="enterprise-subtitle">These system defaults are used for new users when no organization-level configuration exists.</p>
+  </div>
+  <form method="post" class="config-card">
+    <div class="feature-list">
+      {% for card in cards %}
+      <label class="feature-row" for="default_{{ card.key }}">
+        <span><i class="bi {{ card.icon }} me-2 text-primary"></i><strong>{{ card.name }}</strong><span class="d-block text-muted small">{{ card.description }}</span></span>
+        <span class="form-check form-switch m-0">
+          <input class="form-check-input" id="default_{{ card.key }}" type="checkbox" name="default_enabled_cards" value="{{ card.key }}" {% if card.is_default_enabled %}checked{% endif %}>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="mt-3 d-flex gap-2 justify-content-end">
+      <a class="enterprise-btn" href="{{ url_for('superadmin.assign_cards') }}">Cancel</a>
+      <button class="enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-save me-2"></i>Save Defaults</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,14 +1,115 @@
 {% if profile_type == 'student' %}
-<form method="post" action="{{ url_for('user.update_student_skills') }}" class="mt-1">
-  <label class="form-label">Skills</label>
-  <textarea class="form-control" name="skills" rows="4">{{ user.skills or '' }}</textarea>
-  <div class="mt-3 d-flex gap-2">
-    <button class="btn btn-primary" type="submit">Save</button>
+{% set categories = ['Programming Language', 'Framework', 'Database', 'Web Technology', 'Mobile Development', 'Cloud', 'DevOps', 'Cyber Security', 'Data Science / AI', 'Testing', 'Other'] %}
+{% set proficiencies = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] %}
+{% set language_levels = ['Basic', 'Good', 'Excellent'] %}
+{% set soft_options = ['Communication', 'Leadership', 'Teamwork', 'Problem Solving', 'Time Management', 'Presentation', 'Adaptability', 'Critical Thinking', 'Creativity', 'Decision Making', 'Other'] %}
+{% set saved_soft = soft_skills | map(attribute='skill_name') | list %}
+<form method="post" action="{{ url_for('user.update_student_skills') }}" class="row g-3 mt-1 skills-profile-form">
+  <div class="col-12">
+    <h5 class="form-section-title">Skills Profile</h5>
+    <div class="skills-summary-grid">
+      <div><strong>{{ (technical_skills|length) + (soft_skills|length) + (skill_tools|length) + (languages|length) }}</strong><span>Total Skills</span></div>
+      <div><strong>{{ technical_skills|length }}</strong><span>Technical Skills</span></div>
+      <div><strong>{{ soft_skills|length }}</strong><span>Soft Skills</span></div>
+      <div><strong>{{ skill_tools|length }}</strong><span>Tools</span></div>
+      <div><strong>{{ languages|length }}</strong><span>Languages</span></div>
+    </div>
+  </div>
+
+  <div class="col-12"><h5 class="form-section-title">Technical Skills</h5></div>
+  <div class="col-12" id="technicalSkillRows">
+    {% for skill in technical_skills or [{}] %}
+    <div class="row g-2 skill-repeat-row mb-2 align-items-end">
+      <div class="col-md-3"><input class="form-control" name="technical_skill_name[]" value="{{ skill.get('skill_name', '') }}" placeholder="Skill Name"></div>
+      <div class="col-md-3"><select class="form-select" name="technical_skill_category[]"><option value="">Skill Category</option>{% for category in categories %}<option value="{{ category }}" {% if skill.get('skill_category') == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><select class="form-select" name="technical_proficiency_level[]"><option value="">Proficiency Level</option>{% for level in proficiencies %}<option value="{{ level }}" {% if skill.get('proficiency_level') == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><input type="number" min="0" step="0.1" class="form-control" name="technical_years_experience[]" value="{{ skill.get('years_experience', '') }}" placeholder="Years"></div>
+      <div class="col-md-1"><button class="btn btn-outline-danger btn-sm js-remove-skill-row" type="button">Delete</button></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="col-12"><button class="btn btn-outline-primary btn-sm" type="button" data-add-row="technicalSkillRows">+ Add Technical Skill</button></div>
+
+  <div class="col-12"><h5 class="form-section-title">Soft Skills</h5></div>
+  <div class="col-12 skill-checkbox-grid">
+    {% for option in soft_options %}
+    <label class="form-check">
+      <input class="form-check-input" type="checkbox" name="soft_skills[]" value="{{ option }}" {% if option in saved_soft %}checked{% endif %}>
+      <span class="form-check-label">{{ option }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <div class="col-12" id="customSoftSkillRows">
+    {% for skill in soft_skills if skill.skill_name not in soft_options %}
+    <div class="row g-2 skill-repeat-row mb-2 align-items-end"><div class="col-md-6"><input class="form-control" name="custom_soft_skills[]" value="{{ skill.skill_name }}" placeholder="Custom soft skill"></div><div class="col-md-2"><button class="btn btn-outline-danger btn-sm js-remove-skill-row" type="button">Delete</button></div></div>
+    {% endfor %}
+    <div class="row g-2 skill-repeat-row mb-2 align-items-end"><div class="col-md-6"><input class="form-control" name="custom_soft_skills[]" placeholder="Custom soft skill"></div><div class="col-md-2"><button class="btn btn-outline-danger btn-sm js-remove-skill-row" type="button">Delete</button></div></div>
+  </div>
+  <div class="col-12"><button class="btn btn-outline-primary btn-sm" type="button" data-add-row="customSoftSkillRows">+ Add Soft Skill</button></div>
+
+  <div class="col-12"><h5 class="form-section-title">Tools & Software</h5></div>
+  <div class="col-12" id="toolRows">
+    {% for tool in skill_tools or [{}] %}
+    <div class="row g-2 skill-repeat-row mb-2 align-items-end">
+      <div class="col-md-4"><input class="form-control" name="tool_name[]" value="{{ tool.get('tool_name', '') }}" placeholder="Tool/Software Name"></div>
+      <div class="col-md-3"><select class="form-select" name="tool_proficiency_level[]"><option value="">Proficiency Level</option>{% for level in proficiencies %}<option value="{{ level }}" {% if tool.get('proficiency_level') == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><input type="number" min="0" step="0.1" class="form-control" name="tool_years_experience[]" value="{{ tool.get('years_experience', '') }}" placeholder="Years of Experience"></div>
+      <div class="col-md-2"><button class="btn btn-outline-danger btn-sm js-remove-skill-row" type="button">Delete</button></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="col-12"><button class="btn btn-outline-primary btn-sm" type="button" data-add-row="toolRows">+ Add Tool</button></div>
+
+  <div class="col-12"><h5 class="form-section-title">Languages</h5></div>
+  <div class="col-12" id="languageRows">
+    {% for language in languages or [{}] %}
+    <div class="row g-2 skill-repeat-row mb-2 align-items-end">
+      <div class="col-md-3"><input class="form-control" name="language_name[]" value="{{ language.get('language_name', '') }}" placeholder="Language Name"></div>
+      <div class="col-md-2"><select class="form-select" name="reading_level[]"><option value="">Reading Level</option>{% for level in language_levels %}<option value="{{ level }}" {% if language.get('reading_level') == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><select class="form-select" name="writing_level[]"><option value="">Writing Level</option>{% for level in language_levels %}<option value="{{ level }}" {% if language.get('writing_level') == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><select class="form-select" name="speaking_level[]"><option value="">Speaking Level</option>{% for level in language_levels %}<option value="{{ level }}" {% if language.get('speaking_level') == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><button class="btn btn-outline-danger btn-sm js-remove-skill-row" type="button">Delete</button></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="col-12"><button class="btn btn-outline-primary btn-sm" type="button" data-add-row="languageRows">+ Add Language</button></div>
+
+  <div class="col-12 d-flex flex-wrap gap-2">
+    <button class="btn btn-primary" type="submit">Save Changes</button>
+    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#section_edit_form_skills">Cancel</button>
   </div>
 </form>
 <form method="post" action="{{ url_for('user.delete_student_skills') }}" class="mt-2">
-  <button class="btn btn-outline-danger" type="submit">Delete</button>
+  <button class="btn btn-outline-danger" type="submit">Delete All Skills</button>
 </form>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.skills-profile-form [data-add-row]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.addRow);
+        const row = target.querySelector('.skill-repeat-row').cloneNode(true);
+        row.querySelectorAll('input, select').forEach((input) => {
+          if (input.type === 'checkbox') {
+            input.checked = false;
+          } else {
+            input.value = '';
+          }
+        });
+        target.appendChild(row);
+      });
+    });
+    document.querySelector('.skills-profile-form').addEventListener('click', function(event) {
+      if (!event.target.classList.contains('js-remove-skill-row')) return;
+      const row = event.target.closest('.skill-repeat-row');
+      const group = row.parentElement;
+      if (group.querySelectorAll('.skill-repeat-row').length > 1) {
+        row.remove();
+      } else {
+        row.querySelectorAll('input, select').forEach((input) => input.value = '');
+      }
+    });
+  });
+</script>
 {% elif profile_type == 'employee' %}
 <form method="post" action="{{ url_for('employee.update_employee_skills') }}" class="mt-1">
   <label class="form-label">Skills</label>

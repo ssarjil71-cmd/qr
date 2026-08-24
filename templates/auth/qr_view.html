@@ -1,40 +1,106 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row justify-content-center py-3 qr-card-page">
-  <div class="col-lg-8 qr-card-shell">
-    <div class="auth-card qr-card-panel p-4 p-lg-5">
-      <div class="qr-card-header d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h3 class="qr-card-title mb-1">Your QR Card</h3>
-          <p class="qr-card-subtitle mb-0">Download, print or share your card securely.</p>
-        </div>
-        <a class="btn btn-outline-primary qr-back-btn" href="{{ url_for('auth.dashboard') }}">Back</a>
-      </div>
-      <div class="qr-visual text-center">
-        {% if qr_path %}
-          <div class="qr-image-wrap">
-            <img src="{{ url_for('static', filename=qr_path) }}" alt="QR Code" class="img-fluid">
-          </div>
-          {% if scan_url %}
-          <div class="qr-link-box mt-3">
-            <div class="qr-link-label">QR Scan Link</div>
-            <a href="{{ scan_url }}" target="_blank" rel="noopener">{{ scan_url }}</a>
-          </div>
-          {% endif %}
-        {% else %}
-          <p class="text-muted mb-0">No QR generated yet.</p>
-        {% endif %}
-      </div>
-      <div class="qr-actions mt-4">
-        {% if qr_path %}
-        <a class="btn btn-primary" href="{{ url_for('static', filename=qr_path) }}" download="lifeshield_qr.png">Download PNG</a>
-        <a class="btn btn-outline-primary" href="{{ url_for('auth.download_pdf') }}">Download PDF</a>
-        <a class="btn btn-outline-secondary" href="javascript:window.print()">Print QR</a>
-        {% else %}
-        <a class="btn btn-primary" href="{{ url_for('auth.generate_qr') }}">Generate QR</a>
-        {% endif %}
-      </div>
+<main class="qr-identity-page">
+  <header class="qr-identity-head">
+    <div>
+      <img class="qr-identity-logo" src="{{ url_for('static', filename='img/qr-nexid-logo.png') }}" alt="QR-NexID - Scan Me, Know Me">
+      <h1>Your Digital Identity</h1>
+      <p>Two secure QR codes for two separate scan experiences.</p>
     </div>
-  </div>
-</div>
+    <a class="btn qr-outline-btn" href="{{ url_for('auth.dashboard') }}"><i class="bi bi-arrow-left"></i> Back</a>
+  </header>
+
+  <section class="qr-card-grid">
+    {% for key, card in qr_cards.items() %}
+    <article class="premium-qr-card {{ key }}-qr" id="{{ key }}-qr-card">
+      <div class="premium-card-top">
+        <img src="{{ url_for('static', filename='img/qr-nexid-hero-art.png') }}" alt="QR-NexID">
+        <span>{{ card.badge }}</span>
+      </div>
+      <div class="premium-card-label">{{ card.label }}</div>
+
+      <div class="premium-user-row">
+        <div class="premium-avatar">
+          {% if user[6] %}
+          <img src="{{ url_for('user.uploads', filename=user[6].replace('static/uploads/', '')) }}" alt="{{ user[2] }}">
+          {% else %}
+          {{ (user[2] or 'QR')[:2].upper() }}
+          {% endif %}
+        </div>
+        <div>
+          <h2>{{ user[2] or 'QR-NexID User' }}</h2>
+          <p>{{ 'Emergency Contact' if key == 'emergency' else 'Digital Identity' }}</p>
+          <strong><i class="bi {{ 'bi-exclamation-triangle-fill' if key == 'emergency' else 'bi-patch-check-fill' }}"></i> {{ card.badge }}</strong>
+        </div>
+      </div>
+
+      <div class="premium-qr-stage">
+        <div class="qr-corner qr-corner-tl"></div>
+        <div class="qr-corner qr-corner-tr"></div>
+        <div class="qr-corner qr-corner-bl"></div>
+        <div class="qr-corner qr-corner-br"></div>
+        <div class="scan-line scan-line-top"></div>
+        <div class="scan-line scan-line-bottom"></div>
+        <div class="premium-qr-shell">
+          <img src="{{ url_for('static', filename=card.path) }}" alt="{{ card.title }} code">
+        </div>
+      </div>
+
+      <div class="qr-card-lines">
+        <span>SCAN ME &bull; KNOW ME</span>
+        <strong>SECURE DIGITAL IDENTITY &bull; VERIFIED</strong>
+        <em>{{ 'EMERGENCY ACCESS' if key == 'emergency' else 'VERIFIED DIGITAL IDENTITY' }}</em>
+      </div>
+
+      <h3>{{ card.title }}</h3>
+      <p class="premium-scan-text">{{ card.description }}</p>
+
+      <div class="premium-info-list">
+        {% if key == 'emergency' %}
+        <span><i class="bi bi-telephone-plus"></i> Emergency Contact</span>
+        <span><i class="bi bi-diagram-2"></i> Relation</span>
+        <span><i class="bi bi-check-circle-fill"></i> Verified Emergency Information</span>
+        {% else %}
+        <span><i class="bi bi-check-circle-fill"></i> Complete Profile</span>
+        <span><i class="bi bi-briefcase-fill"></i> Professional Profile</span>
+        <span><i class="bi bi-patch-check-fill"></i> Verified Information</span>
+        {% endif %}
+      </div>
+
+      <div class="qr-link-box premium-link-box">
+        <div class="qr-link-label">QR Scan Link</div>
+        <a href="{{ card.scan_url }}" target="_blank" rel="noopener">{{ card.scan_url }}</a>
+      </div>
+
+      <div class="premium-actions">
+        <a class="btn premium-primary" href="{{ card.download_png }}"><i class="bi bi-download"></i> Download PNG</a>
+        <a class="btn premium-secondary" href="{{ card.download_pdf }}"><i class="bi bi-filetype-pdf"></i> Download PDF</a>
+        <button class="btn premium-secondary" type="button" data-print-card="{{ key }}-qr-card"><i class="bi bi-printer"></i> Print QR</button>
+        <button class="btn premium-secondary copy-link-btn" type="button" data-copy-link="{{ card.scan_url }}"><i class="bi bi-link-45deg"></i> Copy Scan Link</button>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+</main>
+
+<script>
+  document.querySelectorAll('[data-copy-link]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(button.dataset.copyLink);
+      button.classList.add('copied');
+      button.innerHTML = '<i class="bi bi-check2"></i> Copied';
+      setTimeout(() => {
+        button.classList.remove('copied');
+        button.innerHTML = '<i class="bi bi-link-45deg"></i> Copy Scan Link';
+      }, 1600);
+    });
+  });
+
+  document.querySelectorAll('[data-print-card]').forEach((button) => {
+    button.addEventListener('click', () => {
+      document.body.dataset.printCard = button.dataset.printCard;
+      window.print();
+    });
+  });
+</script>
 {% endblock %}

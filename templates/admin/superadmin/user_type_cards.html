@@ -1,0 +1,125 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  .enterprise-page { display:grid; gap:20px; }
+  .enterprise-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .enterprise-title { margin:0; font-size:var(--fs-title); font-weight:800; }
+  .enterprise-subtitle { margin:6px 0 0; color:var(--text-secondary); }
+  .enterprise-btn { min-height:44px; padding:10px 16px; border-radius:12px; border:1px solid var(--border-color); background:#fff; color:var(--text-primary); font-weight:700; text-decoration:none; }
+  .enterprise-btn-primary { border-color:var(--primary-color); background:var(--primary-color); color:#fff; }
+  .type-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+  .type-card { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px; border:1px solid var(--border-color); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(15,23,42,.05); color:var(--text-primary); text-decoration:none; }
+  .type-card.active { border-color:var(--primary-color); box-shadow:0 16px 38px rgba(37,99,235,.16); }
+  .type-icon { width:46px; height:46px; display:inline-flex; align-items:center; justify-content:center; border-radius:14px; background:#EFF6FF; color:var(--primary-color); font-size:21px; }
+  .config-card, .apply-card { border:1px solid var(--border-color); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(15,23,42,.05); overflow:hidden; }
+  .config-header, .apply-card { padding:16px; }
+  .card-table { min-width:980px; margin:0; }
+  .card-table th { background:#F1F5F9; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:.04em; padding:14px 16px; }
+  .card-table td { padding:14px 16px; vertical-align:middle; }
+  .feature-icon { width:38px; height:38px; display:inline-flex; align-items:center; justify-content:center; border-radius:12px; background:#EFF6FF; color:var(--primary-color); }
+  .order-input { width:90px; min-height:40px; border-radius:10px; }
+  .bulk-actions { display:flex; flex-wrap:wrap; gap:8px; }
+  @media (max-width:1100px){ .type-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  @media (max-width:768px){ .type-grid{grid-template-columns:1fr;} .enterprise-title{font-size:30px;} }
+</style>
+
+{% set selected_summary = (user_types|selectattr('key', 'equalto', selected_type)|list|first) %}
+<div class="enterprise-page">
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">User Type Cards</h1>
+      <p class="enterprise-subtitle">Configure which cards are available for each user type.</p>
+    </div>
+    <a class="enterprise-btn" href="{{ url_for('superadmin.assign_cards') }}"><i class="bi bi-ui-checks-grid me-2"></i>Assign Cards</a>
+  </div>
+
+  <div class="type-grid">
+    {% for type in user_types %}
+    <a class="type-card {% if type.key == selected_type %}active{% endif %}" href="{{ url_for('superadmin.user_type_cards', user_type=type.key) }}">
+      <div class="d-flex align-items-center gap-3">
+        <span class="type-icon"><i class="bi {{ type.icon }}"></i></span>
+        <div>
+          <div class="fw-bold">{{ type.label }}</div>
+          <div class="text-muted small">{{ type.assigned_count }} / {{ type.total_cards }} Cards Assigned</div>
+        </div>
+      </div>
+      <i class="bi bi-chevron-right text-muted"></i>
+    </a>
+    {% endfor %}
+  </div>
+
+  <form method="post" class="config-card" id="userTypeCardsForm">
+    <input type="hidden" name="user_type" value="{{ selected_type }}">
+    <input type="hidden" name="action" value="save">
+    <div class="config-header enterprise-header">
+      <div>
+        <h2 class="h4 fw-bold mb-1">{{ selected_summary.label if selected_summary else selected_type|replace('_',' ')|title }} Card Configuration</h2>
+        <p class="enterprise-subtitle mb-0">Assigned: {{ selected_summary.assigned_count if selected_summary else 0 }} / {{ selected_summary.total_cards if selected_summary else cards|length }}</p>
+      </div>
+      <div class="bulk-actions">
+        <button class="enterprise-btn" type="button" data-action="select">Select All</button>
+        <button class="enterprise-btn" type="button" data-action="deselect">Deselect All</button>
+        <button class="enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-save me-2"></i>Save Changes</button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table card-table align-middle">
+        <thead>
+          <tr><th>Card</th><th>Enabled</th><th>Required / Optional</th><th>Display Order</th></tr>
+        </thead>
+        <tbody>
+          {% for card in cards %}
+          {% set permission = permissions.get(card.key, {}) %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-3">
+                <span class="feature-icon"><i class="bi {{ card.icon }}"></i></span>
+                <div><strong>{{ card.name }}</strong><div class="text-muted small">{{ card.description }}</div></div>
+              </div>
+            </td>
+            <td>
+              <div class="form-check form-switch">
+                <input class="form-check-input permission-toggle" type="checkbox" name="enabled_cards" value="{{ card.key }}" id="enabled_{{ card.key }}" {% if permission.is_enabled %}checked{% endif %}>
+              </div>
+            </td>
+            <td>
+              <select class="form-select" name="required_cards" aria-label="Required setting for {{ card.name }}">
+                <option value="">Optional</option>
+                <option value="{{ card.key }}" {% if permission.is_required %}selected{% endif %}>Required</option>
+              </select>
+            </td>
+            <td><input class="form-control order-input" type="number" min="1" name="display_order_{{ card.key }}" value="{{ permission.display_order or card.display_order }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+
+  <form method="post" class="apply-card" onsubmit="return confirm('This will update card permissions for existing users of this type. Existing individual overrides may be affected. Continue?');">
+    <input type="hidden" name="user_type" value="{{ selected_type }}">
+    <input type="hidden" name="action" value="apply_existing">
+    <h2 class="h5 fw-bold mb-2">Apply User Type Configuration to Existing Users</h2>
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <label class="form-check mb-0">
+        <input class="form-check-input" type="radio" name="apply_mode" value="without_overrides" checked>
+        <span class="form-check-label">Apply only to users without individual overrides</span>
+      </label>
+      <label class="form-check mb-0">
+        <input class="form-check-input" type="radio" name="apply_mode" value="force">
+        <span class="form-check-label">Force apply to all users</span>
+      </label>
+      <button class="enterprise-btn enterprise-btn-primary ms-auto" type="submit"><i class="bi bi-arrow-repeat me-2"></i>Apply</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.querySelectorAll('[data-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const checked = button.dataset.action === 'select';
+      document.querySelectorAll('.permission-toggle').forEach((input) => { input.checked = checked; });
+    });
+  });
+</script>
+{% endblock %}

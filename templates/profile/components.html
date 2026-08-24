@@ -40,13 +40,13 @@
 </div>
 {% endmacro %}
 
-{% macro section_card(section, profile_type, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None) %}
+{% macro section_card(section, profile_type, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None) %}
 <div class="col-12 col-sm-6 col-xl-4">
   <div class="summary-card-wrap">
     <a class="summary-section-card profile-section-{{ section.key }}" href="{{ url_for('employee.employee_section_detail', section_key=section.key) if profile_type == 'employee' else url_for('user.student_section_detail', section_key=section.key) }}">
       <span class="summary-section-title">{{ section.title }}</span>
       <span class="summary-section-value">
-        {% if section.key == 'projects' %}{{ projects|length }}{% elif section.key == 'certificates' %}{{ certificates|length }}{% elif section.key == 'upload_documents' %}{{ uploaded_documents|length }}{% elif section.key == 'social_links' %}{{ social_links|length }}{% elif section.key == 'work_experience' %}{{ experiences|length }}{% else %}{{ section.completion }}%{% endif %}
+        {% if section.key == 'projects' %}{{ projects|length }}{% elif section.key == 'certificates' %}{{ certificates|length }}{% elif section.key == 'upload_documents' %}{{ uploaded_documents|length }}{% elif section.key == 'social_links' %}{{ social_links|length }}{% elif section.key == 'work_experience' %}{{ experiences|length }}{% else %}{{ section.completion }}%{% if section.completion == 100 %} ✓{% endif %}{% endif %}
       </span>
       <span class="summary-section-chevron">&gt;</span>
     </a>
@@ -60,7 +60,7 @@
 </div>
 {% endmacro %}
 
-{% macro detail_rows(section, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None) %}
+{% macro detail_rows(section, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None) %}
 {% if section.key == 'basic_information' %}
   <div class="detail-row"><span>Name</span><strong>{{ user.name or '-' }}</strong></div>
   <div class="detail-row"><span>Mobile</span><strong>{{ user.mobile or '-' }}</strong></div>
@@ -97,7 +97,63 @@
   <div class="detail-section"><span class="detail-section-title">Emergency Note</span></div>
   <div class="detail-row detail-row-block"><span>Note</span><strong>{{ user.emergency_note or '-' }}</strong></div>
 {% elif section.key == 'medical_report' %}
-  <div class="detail-row detail-row-block"><span>Medical Report</span><strong>{{ user.medical_notes or '-' }}</strong></div>
+  <div class="detail-section"><span class="detail-section-title">Basic Medical Details</span></div>
+  <div class="detail-row"><span>Blood Group</span><strong>{{ medical_report.get('blood_group') or user.blood_group or '-' }}</strong></div>
+  <div class="detail-row"><span>Height</span><strong>{{ medical_report.get('height') or '-' }}{% if medical_report.get('height') %} cm{% endif %}</strong></div>
+  <div class="detail-row"><span>Weight</span><strong>{{ medical_report.get('weight') or '-' }}{% if medical_report.get('weight') %} kg{% endif %}</strong></div>
+  <div class="detail-row"><span>BMI</span><strong>{{ medical_report.get('bmi') or '-' }}</strong></div>
+  <div class="detail-row"><span>Blood Pressure</span><strong>{{ medical_report.get('blood_pressure') or '-' }}</strong></div>
+  <div class="detail-row"><span>Pulse Rate</span><strong>{{ medical_report.get('pulse_rate') or '-' }}</strong></div>
+  <div class="detail-row"><span>SpO2</span><strong>{{ medical_report.get('spo2') or '-' }}</strong></div>
+  <div class="detail-row"><span>Body Temperature</span><strong>{{ medical_report.get('body_temperature') or '-' }}</strong></div>
+  <div class="detail-row"><span>Last Health Checkup Date</span><strong>{{ medical_report.get('last_health_checkup_date') or '-' }}</strong></div>
+  <div class="detail-section"><span class="detail-section-title">Allergies</span></div>
+  <div class="detail-row"><span>Do you have any allergies?</span><strong>{{ (medical_report.get('has_allergies') or '-')|title }}</strong></div>
+  {% if medical_report.get('has_allergies') == 'yes' %}
+  <div class="detail-row detail-row-block"><span>Drug Allergies</span><strong>{{ medical_report.get('drug_allergies') or '-' }}</strong></div>
+  <div class="detail-row detail-row-block"><span>Food Allergies</span><strong>{{ medical_report.get('food_allergies') or '-' }}</strong></div>
+  <div class="detail-row detail-row-block"><span>Other Allergies</span><strong>{{ medical_report.get('other_allergies') or '-' }}</strong></div>
+  <div class="detail-row detail-row-block"><span>Allergy Details</span><strong>{{ medical_report.get('allergy_details') or '-' }}</strong></div>
+  {% endif %}
+  <div class="detail-section"><span class="detail-section-title">Medical History</span></div>
+  {% for field, label in [('diabetes', 'Diabetes'), ('hypertension', 'Hypertension'), ('heart_disease', 'Heart Disease'), ('asthma', 'Asthma'), ('epilepsy', 'Epilepsy'), ('kidney_disease', 'Kidney Disease')] %}
+  <div class="detail-row"><span>{{ label }}</span><strong>{{ (medical_report.get(field) or '-')|title }}</strong></div>
+  {% endfor %}
+  <div class="detail-row detail-row-block"><span>Other Medical Condition</span><strong>{{ medical_report.get('other_medical_condition') or '-' }}</strong></div>
+  <div class="detail-row"><span>Previous Surgery</span><strong>{{ (medical_report.get('previous_surgery') or '-')|title }}</strong></div>
+  {% if medical_report.get('previous_surgery') == 'yes' %}
+  <div class="detail-row detail-row-block"><span>Surgery Details</span><strong>{{ medical_report.get('surgery_details') or '-' }}</strong></div>
+  {% endif %}
+  <div class="detail-section"><span class="detail-section-title">Current Medication</span></div>
+  <div class="detail-row"><span>Currently taking medicines?</span><strong>{{ (medical_report.get('currently_taking_medicines') or '-')|title }}</strong></div>
+  {% if medicines %}
+    {% for medicine in medicines %}
+      <div class="detail-list-item"><strong>{{ medicine.medicine_name }}</strong><span>{{ medicine.dosage or '-' }} | {{ medicine.frequency or '-' }} | {{ medicine.purpose or '-' }}</span></div>
+    {% endfor %}
+  {% endif %}
+  <div class="detail-section"><span class="detail-section-title">Vaccination</span></div>
+  <div class="detail-row"><span>Vaccination Status</span><strong>{{ medical_report.get('vaccination_status') or '-' }}</strong></div>
+  {% if vaccinations %}
+    {% for vaccination in vaccinations %}
+      <div class="detail-list-item"><strong>{{ vaccination.vaccine_name }}</strong><span>Dose: {{ vaccination.dose or '-' }} | Date: {{ vaccination.vaccination_date or '-' }} | Next Due: {{ vaccination.next_due_date or '-' }}</span></div>
+    {% endfor %}
+  {% endif %}
+  <div class="detail-section"><span class="detail-section-title">Medical Documents</span></div>
+  {% if medical_documents %}
+    {% for document in medical_documents %}
+      <div class="detail-list-item">
+        <strong>{{ document.document_name }}</strong>
+        <span>{{ document.document_type.replace('_', ' ').title() }} | {{ document.document_date or '-' }}</span>
+        <span>{{ document.description or '-' }}</span>
+        <a class="detail-download-link" href="{{ url_for('user.uploads', filename=document.file_path.replace('static/uploads/', '')) }}" target="_blank">View File</a>
+        <form method="post" action="{{ url_for('user.delete_student_medical_document', document_id=document.id) }}">
+          <button class="detail-delete-btn" type="submit">Delete</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-card-text">No medical documents uploaded.</div>
+  {% endif %}
 {% elif section.key == 'company_information' %}
   <div class="detail-row"><span>Company</span><strong>{{ employee_profile.get('company_name', '-') or '-' }}</strong></div>
   <div class="detail-row"><span>Employee Code</span><strong>{{ employee_profile.get('employee_code', '-') or '-' }}</strong></div>
@@ -117,7 +173,49 @@
     <div class="empty-card-text">No work experience added.</div>
   {% endif %}
 {% elif section.key == 'skills' %}
-  <div class="detail-row detail-row-block"><span>Skills</span><strong>{{ user.skills or '-' }}</strong></div>
+  <div class="skills-summary-grid mb-3">
+    <div><strong>{{ (technical_skills|length) + (soft_skills|length) + (skill_tools|length) + (languages|length) }}</strong><span>Total Skills</span></div>
+    <div><strong>{{ technical_skills|length }}</strong><span>Technical Skills</span></div>
+    <div><strong>{{ soft_skills|length }}</strong><span>Soft Skills</span></div>
+    <div><strong>{{ skill_tools|length }}</strong><span>Tools</span></div>
+    <div><strong>{{ languages|length }}</strong><span>Languages</span></div>
+  </div>
+  <div class="detail-section"><span class="detail-section-title">Technical Skills</span></div>
+  {% if technical_skills %}
+    <div class="skill-card-grid">
+    {% for skill in technical_skills %}
+      <div class="skill-display-card"><strong>{{ skill.skill_name }}</strong><span>{{ skill.skill_category }}</span><span>{{ skill.proficiency_level }}{% if skill.years_experience %} | {{ skill.years_experience }} Years{% endif %}</span></div>
+    {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-card-text">No technical skills added.</div>
+  {% endif %}
+  <div class="detail-section"><span class="detail-section-title">Soft Skills</span></div>
+  {% if soft_skills %}
+    <div class="skill-chip-list">{% for skill in soft_skills %}<span class="skill-chip">{{ skill.skill_name }}</span>{% endfor %}</div>
+  {% else %}
+    <div class="empty-card-text">No soft skills added.</div>
+  {% endif %}
+  <div class="detail-section"><span class="detail-section-title">Tools & Software</span></div>
+  {% if skill_tools %}
+    <div class="skill-card-grid">
+    {% for tool in skill_tools %}
+      <div class="skill-display-card"><strong>{{ tool.tool_name }}</strong><span>{{ tool.proficiency_level or '-' }}{% if tool.years_experience %} | {{ tool.years_experience }} Years{% endif %}</span></div>
+    {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-card-text">No tools added.</div>
+  {% endif %}
+  <div class="detail-section"><span class="detail-section-title">Languages</span></div>
+  {% if languages %}
+    <div class="skill-card-grid">
+    {% for language in languages %}
+      <div class="skill-display-card"><strong>{{ language.language_name }}</strong><span>Read: {{ language.reading_level or '-' }}</span><span>Write: {{ language.writing_level or '-' }}</span><span>Speak: {{ language.speaking_level or '-' }}</span></div>
+    {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-card-text">No languages added.</div>
+  {% endif %}
 {% elif section.key == 'projects' %}
   {% if projects %}
     {% for project in projects %}

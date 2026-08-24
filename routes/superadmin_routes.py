@@ -3,6 +3,8 @@ from services.db import get_conn
 from werkzeug.security import check_password_hash
 from models.organization import OrganizationModel
 from models.user import UserModel
+from models.card_permission import CardPermissionModel
+from models.registration_payment import RegistrationPaymentModel
 
 superadmin_bp = Blueprint('superadmin', __name__, template_folder='../templates/admin/superadmin')
 
@@ -60,6 +62,8 @@ def logout():
 @admin_login_required
 def dashboard():
     stats = OrganizationModel.get_dashboard_stats()
+    card_stats = CardPermissionModel.get_dashboard_stats()
+    stats.update(card_stats)
     recent_activity = OrganizationModel.get_recent_activity()
     latest_users = OrganizationModel.get_latest_users()
     latest_organizations = OrganizationModel.get_latest_organizations()
@@ -72,6 +76,95 @@ def dashboard():
         qr_scan_stats=qr_scan_stats,
         **stats,
     )
+
+
+@superadmin_bp.route('/assign-cards')
+@admin_login_required
+def assign_cards():
+    filters = {
+        'q': (request.args.get('q') or '').strip(),
+        'organization_id': request.args.get('organization_id', type=int),
+        'branch_id': request.args.get('branch_id', type=int),
+        'department_id': request.args.get('department_id', type=int),
+        'user_type': (request.args.get('user_type') or '').strip(),
+        'status': (request.args.get('status') or '').strip(),
+    }
+    users = CardPermissionModel.list_assignment_users(filters)
+    return render_template(
+        'admin/superadmin/assign_cards.html',
+        users=users,
+        filters=filters,
+        organizations=CardPermissionModel.list_organizations(),
+    )
+
+
+@superadmin_bp.route('/assign-cards/<int:user_id>', methods=['GET', 'POST'])
+@admin_login_required
+def manage_user_cards(user_id):
+    user = CardPermissionModel.get_user_summary(user_id)
+    if not user:
+        flash('User not found', 'warning')
+        return redirect(url_for('superadmin.assign_cards'))
+    if request.method == 'POST':
+        CardPermissionModel.save_user_permissions(
+            user_id,
+            request.form,
+            changed_by=session.get('super_admin_id'),
+            ip_address=request.remote_addr,
+        )
+        flash('Card permissions updated successfully.', 'success')
+        return redirect(url_for('superadmin.manage_user_cards', user_id=user_id))
+    cards = CardPermissionModel.list_cards()
+    permissions = CardPermissionModel.get_effective_permissions(user_id)
+    logs = CardPermissionModel.get_logs_for_user(user_id)
+    return render_template('admin/superadmin/manage_user_cards.html', user=user, cards=cards, permissions=permissions, logs=logs)
+
+
+@superadmin_bp.route('/default-permissions', methods=['GET', 'POST'])
+@admin_login_required
+def default_permissions():
+    if request.method == 'POST':
+        CardPermissionModel.set_system_defaults(request.form)
+        flash('Default card configuration updated successfully.', 'success')
+        return redirect(url_for('superadmin.default_permissions'))
+    return render_template('admin/superadmin/default_permissions.html', cards=CardPermissionModel.list_cards())
+
+
+@superadmin_bp.route('/user-type-cards', methods=['GET', 'POST'])
+@admin_login_required
+def user_type_cards():
+    selected_type = CardPermissionModel.normalize_card_user_type(request.values.get('user_type') or 'student')
+    if request.method == 'POST':
+        action = request.form.get('action') or 'save'
+        if action == 'apply_existing':
+            updated = CardPermissionModel.apply_user_type_to_existing_users(
+                selected_type,
+                mode=request.form.get('apply_mode') or 'without_overrides',
+                changed_by=session.get('super_admin_id'),
+                ip_address=request.remote_addr,
+            )
+            flash(f'User type configuration applied to {updated} existing users.', 'success')
+        else:
+            CardPermissionModel.save_user_type_permissions(selected_type, request.form)
+            flash('User type card configuration updated successfully.', 'success')
+        return redirect(url_for('superadmin.user_type_cards', user_type=selected_type))
+    return render_template(
+        'admin/superadmin/user_type_cards.html',
+        user_types=CardPermissionModel.list_user_type_summaries(),
+        selected_type=selected_type,
+        cards=CardPermissionModel.list_cards(),
+        permissions=CardPermissionModel.get_user_type_permissions(selected_type),
+    )
+
+
+@superadmin_bp.route('/pricing', methods=['GET', 'POST'])
+@admin_login_required
+def pricing_management():
+    if request.method == 'POST':
+        RegistrationPaymentModel.update_prices(request.form, updated_by=session.get('super_admin_id'))
+        flash('Registration pricing updated successfully.', 'success')
+        return redirect(url_for('superadmin.pricing_management'))
+    return render_template('admin/superadmin/pricing_management.html', pricing=RegistrationPaymentModel.list_pricing())
 
 
 # Organization management
@@ -120,7 +213,27 @@ def organization_view(org_id):
         return redirect(url_for('superadmin.organizations_list'))
     branches = OrganizationModel.get_branch_summary(org_id)
     primary_admin = UserModel.get_primary_admin(org_id)
-    return render_template('admin/superadmin/organization_view.html', org=org, branches=branches, primary_admin=primary_admin)
+    card_features = CardPermissionModel.list_cards()
+    org_card_permissions = CardPermissionModel.get_org_permissions(org_id)
+    return render_template('admin/superadmin/organization_view.html', org=org, branches=branches, primary_admin=primary_admin, card_features=card_features, org_card_permissions=org_card_permissions)
+
+
+@superadmin_bp.route('/organizations/<int:org_id>/card-configuration', methods=['POST'])
+@admin_login_required
+def organization_card_configuration(org_id):
+    org = OrganizationModel.get_by_id(org_id)
+    if not org:
+        flash('Organization not found', 'warning')
+        return redirect(url_for('superadmin.organizations_list'))
+    CardPermissionModel.save_org_permissions(
+        org_id,
+        request.form,
+        changed_by=session.get('super_admin_id'),
+        ip_address=request.remote_addr,
+        apply_existing=bool(request.form.get('apply_existing')),
+    )
+    flash('Organization card configuration updated successfully.', 'success')
+    return redirect(url_for('superadmin.organization_view', org_id=org_id))
 
 
 @superadmin_bp.route('/organizations/<int:org_id>/admin/create', methods=['GET', 'POST'])
@@ -179,6 +292,18 @@ def users():
     q = request.args.get('q')
     users = UserModel.list_users(search=q)
     return render_template('admin/superadmin/users.html', users=users, q=q)
+
+
+@superadmin_bp.route('/users/<int:uid>/delete', methods=['POST'])
+@admin_login_required
+def delete_user(uid):
+    row = UserModel.find_by_id(uid)
+    if not row:
+        flash('User not found', 'warning')
+        return redirect(url_for('superadmin.users'))
+    UserModel.delete_user(uid)
+    flash('User deleted successfully', 'info')
+    return redirect(url_for('superadmin.users'))
 
 
 @superadmin_bp.route('/qr-cards')

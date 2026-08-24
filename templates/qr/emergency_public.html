@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="emergency-public-page">
+  <section class="emergency-profile-card">
+    <div class="emergency-top">
+      <img src="{{ url_for('static', filename='img/qr-nexid-logo.png') }}" alt="QR-NexID - Scan Me, Know Me">
+      <span><i class="bi bi-exclamation-triangle-fill"></i> Emergency Only</span>
+    </div>
+
+    <div class="emergency-person">
+      <div class="premium-avatar">
+        {% if user.photo %}
+        <img src="{{ url_for('user.uploads', filename=user.photo.replace('static/uploads/', '')) }}" alt="{{ user.name }}">
+        {% else %}
+        {{ (user.name or 'QR')[:2].upper() }}
+        {% endif %}
+      </div>
+      <div>
+        <h1>{{ user.name or 'QR-NexID User' }}</h1>
+        <p>Emergency Contact Information</p>
+      </div>
+    </div>
+
+    <div class="emergency-call-panel">
+      <h2>Call Emergency Contact</h2>
+      {% set primary_phone = user.emergency_primary_contact_mobile or user.emergency_contact %}
+      {% if primary_phone %}
+      <a class="btn premium-primary emergency-call-btn" href="tel:{{ primary_phone }}"><i class="bi bi-telephone-fill"></i> Call {{ primary_phone }}</a>
+      {% else %}
+      <p class="text-muted mb-0">No emergency phone number is available.</p>
+      {% endif %}
+    </div>
+
+    <div class="emergency-detail-grid">
+      <article>
+        <h3>Primary Contact</h3>
+        <p><strong>Name:</strong> {{ user.emergency_primary_contact_name or '-' }}</p>
+        <p><strong>Relation:</strong> {{ user.emergency_primary_contact_relation or '-' }}</p>
+        <p><strong>Phone:</strong> {{ primary_phone or '-' }}</p>
+        <p><strong>WhatsApp:</strong> {{ user.emergency_primary_contact_whatsapp or '-' }}</p>
+      </article>
+
+      <article>
+        <h3>Secondary Contact</h3>
+        <p><strong>Name:</strong> {{ user.emergency_secondary_contact_name or '-' }}</p>
+        <p><strong>Relation:</strong> {{ user.emergency_secondary_contact_relation or '-' }}</p>
+        <p><strong>Phone:</strong> {{ user.emergency_secondary_contact_mobile or '-' }}</p>
+        {% if user.emergency_secondary_contact_mobile %}
+        <a href="tel:{{ user.emergency_secondary_contact_mobile }}">Call Secondary Contact</a>
+        {% endif %}
+      </article>
+
+      <article>
+        <h3>Emergency Notes</h3>
+        <p><strong>Blood Group:</strong> {{ user.blood_group or '-' }}</p>
+        <p><strong>Doctor:</strong> {{ user.emergency_doctor_name or '-' }}</p>
+        <p><strong>Doctor Phone:</strong> {{ user.emergency_doctor_phone or '-' }}</p>
+        {% if user.emergency_doctor_phone %}
+        <a href="tel:{{ user.emergency_doctor_phone }}">Call Doctor</a>
+        {% endif %}
+      </article>
+
+      <article>
+        <h3>Location / Note</h3>
+        <p><strong>Address:</strong> {{ user.emergency_address or '-' }}</p>
+        <p><strong>Note:</strong> {{ user.emergency_note or '-' }}</p>
+      </article>
+    </div>
+  </section>
+</main>
+{% endblock %}

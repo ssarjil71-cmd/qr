@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>Dashboard</h3>
-<p>Welcome {{ session.user_name }}</p>
+<div class="dashboard-brand-panel auth-card p-4">
+  <img class="dashboard-brand-logo mb-3" src="{{ url_for('static', filename='img/qr-nexid-logo.png') }}" alt="QR-NexID - Scan Me, Know Me">
+  <h3>Dashboard</h3>
+  <p class="mb-0">Welcome {{ session.user_name }}</p>
+</div>
 {% endblock %}

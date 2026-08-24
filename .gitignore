@@ -27,3 +27,10 @@ __pycache__/
 
 # Uploads
 uploads/
+__pycache__/
+*.pyc
+test-results/
+static/qr/
+.env
+.venv/
+venv/

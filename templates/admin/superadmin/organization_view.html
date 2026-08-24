@@ -100,6 +100,45 @@
   </div>
 
   <!-- Branches -->
+  <div class="enterprise-card">
+    <div class="data-grid-header px-0 pt-0">
+      <div>
+        <h2 class="card-title mb-1">Card Configuration</h2>
+        <p class="enterprise-subtitle mb-0">Organization defaults are applied to newly created users unless a user-specific override exists.</p>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('superadmin.organization_card_configuration', org_id=org.id) }}">
+      <div class="info-grid">
+        {% for card in card_features %}
+        {% set permission = org_card_permissions.get(card.key, {}) %}
+        <div class="info-item">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <div>
+              <div class="info-value"><i class="bi {{ card.icon }} me-2 text-primary"></i>{{ card.name }}</div>
+              <div class="entity-meta">{{ card.description }}</div>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="enabled_cards" value="{{ card.key }}" id="org_card_{{ card.key }}" {% if permission.is_enabled %}checked{% endif %}>
+            </div>
+          </div>
+          <label class="form-check mt-2 mb-0">
+            <input class="form-check-input" type="checkbox" name="required_cards" value="{{ card.key }}" {% if permission.is_required %}checked{% endif %}>
+            <span class="form-check-label">Required</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+      <label class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" name="apply_existing" value="1" onclick="return confirm('Apply this organization configuration to existing users? This will overwrite their current user permissions.');">
+        <span class="form-check-label fw-bold">Apply to Existing Users</span>
+      </label>
+      <div class="mt-3 text-end">
+        <button class="btn enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-save me-2"></i>Save Card Configuration</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Branches -->
   <div class="data-grid-card">
     <div class="data-grid-header">
       <div>

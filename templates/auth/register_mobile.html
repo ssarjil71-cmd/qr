@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center py-3">
+  <div class="col-lg-5">
+    <div class="auth-card p-4 p-lg-5">
+      <img class="auth-page-logo mb-3" src="{{ url_for('static', filename='img/qr-nexid-logo.png') }}" alt="QR-NexID - Scan Me, Know Me">
+      <div class="nexid-badge mb-3"><i class="bi bi-phone"></i> {{ user_label }} Registration</div>
+      <h3 class="fw-bold mb-2">Verify Mobile Number</h3>
+      <p class="text-muted mb-3">Enter your mobile number to receive a MSG91 OTP.</p>
+      <div class="alert alert-info py-2">Registration Fee: <strong>₹{{ '%.0f'|format(amount) }}</strong></div>
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">Mobile Number</label>
+          <input class="form-control" name="mobile" inputmode="tel" autocomplete="tel" required>
+        </div>
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-send me-1"></i> Send OTP</button>
+      </form>
+      <div class="alert alert-warning py-2 mt-3 mb-0 small">
+        Temporary testing logic: use OTP <strong>1111</strong>. Replace with real MSG91 API verification later.
+      </div>
+      <div class="mt-3 small text-muted">State: Mobile Number → OTP Sent → OTP Verified → Payment Pending → Payment Successful</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

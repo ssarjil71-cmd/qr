@@ -2,6 +2,7 @@ import math
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from services.db import get_conn
+from models.card_permission import CardPermissionModel
 
 class UserModel:
     MANAGED_USER_TYPES = ('student', 'employee', 'emergency', 'freelancer', 'visitor', 'citizen')
@@ -441,6 +442,8 @@ class UserModel:
         )
         db_conn.commit()
         cur.close()
+        CardPermissionModel.set_user_card_type(user_id, user.get('card_user_type') or user.get('user_type'))
+        CardPermissionModel.assign_defaults_for_user(user_id)
         return user_id
 
     @staticmethod
@@ -499,6 +502,17 @@ class UserModel:
         db_conn, cur = UserModel._get_conn_and_cursor()
         cur.execute('DELETE FROM organization_members WHERE organization_id=%s AND user_id=%s', (org_id, uid))
         cur.execute("DELETE FROM users WHERE id=%s AND user_type IN ('student','employee','emergency','freelancer','visitor','citizen')", (uid,))
+        db_conn.commit()
+        cur.close()
+        return True
+
+    @staticmethod
+    def delete_user(uid):
+        db_conn, cur = UserModel._get_conn_and_cursor()
+        # remove any organization membership links first
+        cur.execute('DELETE FROM organization_members WHERE user_id=%s', (uid,))
+        # remove the user record
+        cur.execute('DELETE FROM users WHERE id=%s', (uid,))
         db_conn.commit()
         cur.close()
         return True

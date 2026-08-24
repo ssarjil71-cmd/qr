@@ -1,0 +1,79 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  .enterprise-page { display: grid; gap: 20px; }
+  .enterprise-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .enterprise-title { margin:0; font-size:var(--fs-title); font-weight:800; }
+  .enterprise-subtitle { margin:6px 0 0; color:var(--text-secondary); }
+  .enterprise-btn { min-height:44px; padding:10px 16px; border-radius:12px; border:1px solid var(--border-color); background:#fff; color:var(--text-primary); font-weight:700; text-decoration:none; }
+  .enterprise-btn-primary { border-color:var(--primary-color); background:var(--primary-color); color:#fff; }
+  .filter-card, .data-card { border:1px solid var(--border-color); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(15,23,42,.05); }
+  .filter-grid { display:grid; grid-template-columns:2fr repeat(5, 1fr) auto auto; gap:10px; padding:16px; }
+  .enterprise-control { min-height:44px; border-radius:12px; border-color:var(--border-color); }
+  .premium-table { min-width:980px; margin:0; font-size:14px; }
+  .premium-table th { background:#F1F5F9; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:.04em; padding:14px 16px; }
+  .premium-table td { padding:14px 16px; vertical-align:middle; }
+  .user-cell { display:flex; align-items:center; gap:12px; }
+  .avatar { width:38px; height:38px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#EFF6FF; color:var(--primary-color); font-weight:800; }
+  .status-badge { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; font-size:12px; font-weight:800; }
+  .badge-active { background:rgba(16,185,129,.12); color:#047857; }
+  .badge-pending { background:#F1F5F9; color:#475569; }
+  @media (max-width:1200px){ .filter-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:768px){ .filter-grid{grid-template-columns:1fr;} .enterprise-title{font-size:30px;} }
+</style>
+<div class="enterprise-page">
+  <div class="enterprise-header">
+    <div>
+      <h1 class="enterprise-title">Assign Cards</h1>
+      <p class="enterprise-subtitle">Assign or remove student dashboard features for individual users.</p>
+    </div>
+    <a class="enterprise-btn" href="{{ url_for('superadmin.default_permissions') }}"><i class="bi bi-toggles2 me-2"></i>Default Permissions</a>
+  </div>
+
+  <form class="filter-card filter-grid" method="get">
+    <input class="form-control enterprise-control" name="q" value="{{ filters.q or '' }}" placeholder="Search user">
+    <select class="form-select enterprise-control" name="organization_id">
+      <option value="">All Organizations</option>
+      {% for org in organizations %}
+      <option value="{{ org.id }}" {% if filters.organization_id == org.id %}selected{% endif %}>{{ org.name }}</option>
+      {% endfor %}
+    </select>
+    <input class="form-control enterprise-control" name="branch_id" value="{{ filters.branch_id or '' }}" placeholder="Branch ID">
+    <input class="form-control enterprise-control" name="department_id" value="{{ filters.department_id or '' }}" placeholder="Department ID">
+    <select class="form-select enterprise-control" name="user_type">
+      <option value="">All Types</option>
+      {% for type in ['student','employee','emergency','freelancer','visitor','citizen'] %}
+      <option value="{{ type }}" {% if filters.user_type == type %}selected{% endif %}>{{ type|title }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-select enterprise-control" name="status">
+      <option value="">All Status</option>
+      <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+    </select>
+    <a class="enterprise-btn text-center" href="{{ url_for('superadmin.assign_cards') }}">Reset</a>
+    <button class="enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-search me-2"></i>Search</button>
+  </form>
+
+  <div class="data-card table-responsive">
+    <table class="table premium-table align-middle">
+      <thead><tr><th>User</th><th>Organization</th><th>Branch</th><th>Department</th><th>QR Status</th><th>Assigned Cards</th><th class="text-end">Action</th></tr></thead>
+      <tbody>
+      {% for user in users %}
+      <tr>
+        <td><div class="user-cell"><span class="avatar">{{ user.name[:1] if user.name else 'U' }}</span><div><strong>{{ user.name }}</strong><div class="text-muted small">{{ user.email or user.mobile or '-' }}</div></div></div></td>
+        <td>{{ user.organization }}</td>
+        <td>{{ user.branch }}</td>
+        <td>{{ user.department }}</td>
+        <td><span class="status-badge {% if user.qr_status == 'Active' %}badge-active{% else %}badge-pending{% endif %}">{{ user.qr_status }}</span></td>
+        <td><strong>{{ user.assigned_count }}/{{ user.total_cards }}</strong></td>
+        <td class="text-end"><a class="enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.manage_user_cards', user_id=user.id) }}"><i class="bi bi-sliders me-2"></i>Manage</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="text-center text-muted py-5">No users match the current filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

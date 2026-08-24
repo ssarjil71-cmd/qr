@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center py-3">
+  <div class="col-lg-5">
+    <div class="auth-card p-4 p-lg-5">
+      <img class="auth-page-logo mb-3" src="{{ url_for('static', filename='img/qr-nexid-logo.png') }}" alt="QR-NexID - Scan Me, Know Me">
+      <div class="nexid-badge mb-3"><i class="bi bi-patch-check-fill"></i> OTP Verified</div>
+      <h3 class="fw-bold mb-2">Payment Pending</h3>
+      <p class="text-muted mb-3">{{ user_label }} registration is unlocked after payment.</p>
+      <div class="alert alert-info">Registration Fee: <strong>₹{{ '%.0f'|format(attempt.amount_rupees) }}</strong></div>
+      <button class="btn btn-primary w-100" id="payNowBtn" type="button"><i class="bi bi-credit-card me-1"></i> Pay Now</button>
+      <div class="small text-muted mt-3" id="paymentState">State: Payment Pending</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  const payButton = document.getElementById('payNowBtn');
+  const stateBox = document.getElementById('paymentState');
+  payButton.addEventListener('click', async () => {
+    payButton.disabled = true;
+    stateBox.textContent = 'Creating secure Razorpay order...';
+    const response = await fetch('{{ url_for("auth.registration_create_order") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const order = await response.json();
+    if (!order.ok) {
+      payButton.disabled = false;
+      stateBox.textContent = order.message || 'Payment Failed';
+      return;
+    }
+    const options = {
+      key: '{{ razorpay_key_id }}',
+      amount: order.amount,
+      currency: 'INR',
+      name: 'QR-NexID',
+      description: '{{ user_label }} Registration Fee',
+      order_id: order.order_id,
+      handler: async function (payment) {
+        stateBox.textContent = 'Verifying payment...';
+        const verifyResponse = await fetch('{{ url_for("auth.registration_verify_payment") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payment)
+        });
+        const result = await verifyResponse.json();
+        if (result.ok) {
+          stateBox.textContent = 'Payment Successful';
+          window.location.href = result.redirect_url;
+        } else {
+          payButton.disabled = false;
+          stateBox.textContent = result.message || 'Payment Failed';
+        }
+      },
+      prefill: { contact: '{{ attempt.mobile }}' },
+      theme: { color: '#2563eb' },
+      modal: {
+        ondismiss: function () {
+          payButton.disabled = false;
+          stateBox.textContent = 'Payment Failed/Cancelled';
+        }
+      }
+    };
+    new Razorpay(options).open();
+  });
+</script>
+{% endblock %}

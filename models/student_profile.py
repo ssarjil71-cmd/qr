@@ -163,6 +163,164 @@ class StudentProfileModel:
             )
             cur.execute(
                 '''
+                CREATE TABLE IF NOT EXISTS student_medical_reports (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    blood_group VARCHAR(20) NULL,
+                    height DECIMAL(6,2) NULL,
+                    weight DECIMAL(6,2) NULL,
+                    bmi DECIMAL(6,2) NULL,
+                    blood_pressure VARCHAR(50) NULL,
+                    pulse_rate VARCHAR(50) NULL,
+                    spo2 VARCHAR(50) NULL,
+                    body_temperature VARCHAR(50) NULL,
+                    last_health_checkup_date DATE NULL,
+                    has_allergies VARCHAR(10) NULL,
+                    drug_allergies TEXT NULL,
+                    food_allergies TEXT NULL,
+                    other_allergies TEXT NULL,
+                    allergy_details TEXT NULL,
+                    diabetes VARCHAR(10) NULL,
+                    hypertension VARCHAR(10) NULL,
+                    heart_disease VARCHAR(10) NULL,
+                    asthma VARCHAR(10) NULL,
+                    epilepsy VARCHAR(10) NULL,
+                    kidney_disease VARCHAR(10) NULL,
+                    other_medical_condition TEXT NULL,
+                    previous_surgery VARCHAR(10) NULL,
+                    surgery_details TEXT NULL,
+                    currently_taking_medicines VARCHAR(10) NULL,
+                    vaccination_status VARCHAR(100) NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_student_medical_reports_user_id (user_id),
+                    CONSTRAINT fk_student_medical_reports_user
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS student_medicines (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    medicine_name VARCHAR(255) NOT NULL,
+                    dosage VARCHAR(100) NULL,
+                    frequency VARCHAR(100) NULL,
+                    purpose TEXT NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    KEY idx_student_medicines_user_id (user_id),
+                    CONSTRAINT fk_student_medicines_user
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS student_vaccinations (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    vaccine_name VARCHAR(255) NOT NULL,
+                    dose VARCHAR(100) NULL,
+                    vaccination_date DATE NULL,
+                    next_due_date DATE NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    KEY idx_student_vaccinations_user_id (user_id),
+                    CONSTRAINT fk_student_vaccinations_user
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS student_medical_documents (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    document_name VARCHAR(255) NOT NULL,
+                    document_type VARCHAR(100) NOT NULL,
+                    document_date DATE NULL,
+                    description TEXT NULL,
+                    file_path VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    KEY idx_student_medical_documents_user_id (user_id),
+                    CONSTRAINT fk_student_medical_documents_user
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS student_technical_skills (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    skill_name VARCHAR(255) NOT NULL,
+                    skill_category VARCHAR(100) NOT NULL,
+                    proficiency_level VARCHAR(50) NOT NULL,
+                    years_experience DECIMAL(5,2) NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_student_technical_skill (user_id, skill_name, skill_category),
+                    KEY idx_student_technical_skills_user_id (user_id),
+                    CONSTRAINT fk_student_technical_skills_user
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS student_soft_skills (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    skill_name VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_student_soft_skill (user_id, skill_name),
+                    KEY idx_student_soft_skills_user_id (user_id),
+                    CONSTRAINT fk_student_soft_skills_user
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS student_skill_tools (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    tool_name VARCHAR(255) NOT NULL,
+                    proficiency_level VARCHAR(50) NULL,
+                    years_experience DECIMAL(5,2) NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_student_skill_tool (user_id, tool_name),
+                    KEY idx_student_skill_tools_user_id (user_id),
+                    CONSTRAINT fk_student_skill_tools_user
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS student_languages (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    language_name VARCHAR(255) NOT NULL,
+                    reading_level VARCHAR(50) NULL,
+                    writing_level VARCHAR(50) NULL,
+                    speaking_level VARCHAR(50) NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_student_language (user_id, language_name),
+                    KEY idx_student_languages_user_id (user_id),
+                    CONSTRAINT fk_student_languages_user
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute(
+                '''
                 CREATE TABLE IF NOT EXISTS profile_section_visibility (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     user_id INT NOT NULL,
@@ -253,6 +411,11 @@ class StudentProfileModel:
             for column_name, column_type in required_columns.items():
                 if column_name not in existing_columns:
                     cur.execute(f'ALTER TABLE users ADD COLUMN {column_name} {column_type}')
+            # Add district_id and taluka_id to store selected IDs (nullable)
+            if 'district_id' not in existing_columns:
+                cur.execute('ALTER TABLE users ADD COLUMN district_id INT NULL')
+            if 'taluka_id' not in existing_columns:
+                cur.execute('ALTER TABLE users ADD COLUMN taluka_id INT NULL')
             conn.commit()
         finally:
             cur.close()
@@ -527,7 +690,215 @@ class StudentProfileModel:
             cur.close()
 
     @classmethod
-    def _build_sections(cls, user, student_profile, projects, certificates, uploaded_documents, resume_profile, social_links):
+    def _get_medical_report(cls, user_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT id, user_id, blood_group, height, weight, bmi, blood_pressure, pulse_rate,
+                       spo2, body_temperature, last_health_checkup_date, has_allergies,
+                       drug_allergies, food_allergies, other_allergies, allergy_details,
+                       diabetes, hypertension, heart_disease, asthma, epilepsy, kidney_disease,
+                       other_medical_condition, previous_surgery, surgery_details,
+                       currently_taking_medicines, vaccination_status, created_at, updated_at
+                FROM student_medical_reports
+                WHERE user_id=%s
+                LIMIT 1
+                ''',
+                (user_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return {}
+            keys = (
+                'id', 'user_id', 'blood_group', 'height', 'weight', 'bmi', 'blood_pressure', 'pulse_rate',
+                'spo2', 'body_temperature', 'last_health_checkup_date', 'has_allergies',
+                'drug_allergies', 'food_allergies', 'other_allergies', 'allergy_details',
+                'diabetes', 'hypertension', 'heart_disease', 'asthma', 'epilepsy', 'kidney_disease',
+                'other_medical_condition', 'previous_surgery', 'surgery_details',
+                'currently_taking_medicines', 'vaccination_status', 'created_at', 'updated_at',
+            )
+            report = dict(zip(keys, row))
+            for date_key in ('last_health_checkup_date',):
+                report[date_key] = report[date_key].isoformat() if report[date_key] else ''
+            for decimal_key in ('height', 'weight', 'bmi'):
+                report[decimal_key] = str(report[decimal_key]) if report[decimal_key] is not None else ''
+            return report
+        finally:
+            cur.close()
+
+    @classmethod
+    def _list_medicines(cls, user_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT id, medicine_name, dosage, frequency, purpose
+                FROM student_medicines
+                WHERE user_id=%s
+                ORDER BY id ASC
+                ''',
+                (user_id,),
+            )
+            return [
+                {'id': row[0], 'medicine_name': row[1], 'dosage': row[2], 'frequency': row[3], 'purpose': row[4]}
+                for row in cur.fetchall()
+            ]
+        finally:
+            cur.close()
+
+    @classmethod
+    def _list_vaccinations(cls, user_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT id, vaccine_name, dose, vaccination_date, next_due_date
+                FROM student_vaccinations
+                WHERE user_id=%s
+                ORDER BY id ASC
+                ''',
+                (user_id,),
+            )
+            return [
+                {
+                    'id': row[0],
+                    'vaccine_name': row[1],
+                    'dose': row[2],
+                    'vaccination_date': row[3].isoformat() if row[3] else '',
+                    'next_due_date': row[4].isoformat() if row[4] else '',
+                }
+                for row in cur.fetchall()
+            ]
+        finally:
+            cur.close()
+
+    @classmethod
+    def _list_medical_documents(cls, user_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT id, document_name, document_type, document_date, description, file_path
+                FROM student_medical_documents
+                WHERE user_id=%s
+                ORDER BY created_at DESC, id DESC
+                ''',
+                (user_id,),
+            )
+            return [
+                {
+                    'id': row[0],
+                    'document_name': row[1],
+                    'document_type': row[2],
+                    'document_date': row[3].isoformat() if row[3] else '',
+                    'description': row[4],
+                    'file_path': row[5],
+                }
+                for row in cur.fetchall()
+            ]
+        finally:
+            cur.close()
+
+    @classmethod
+    def _list_technical_skills(cls, user_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT id, skill_name, skill_category, proficiency_level, years_experience
+                FROM student_technical_skills
+                WHERE user_id=%s
+                ORDER BY skill_name ASC
+                ''',
+                (user_id,),
+            )
+            return [
+                {
+                    'id': row[0],
+                    'skill_name': row[1],
+                    'skill_category': row[2],
+                    'proficiency_level': row[3],
+                    'years_experience': str(row[4]) if row[4] is not None else '',
+                }
+                for row in cur.fetchall()
+            ]
+        finally:
+            cur.close()
+
+    @classmethod
+    def _list_soft_skills(cls, user_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute(
+                'SELECT id, skill_name FROM student_soft_skills WHERE user_id=%s ORDER BY skill_name ASC',
+                (user_id,),
+            )
+            return [{'id': row[0], 'skill_name': row[1]} for row in cur.fetchall()]
+        finally:
+            cur.close()
+
+    @classmethod
+    def _list_skill_tools(cls, user_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT id, tool_name, proficiency_level, years_experience
+                FROM student_skill_tools
+                WHERE user_id=%s
+                ORDER BY tool_name ASC
+                ''',
+                (user_id,),
+            )
+            return [
+                {
+                    'id': row[0],
+                    'tool_name': row[1],
+                    'proficiency_level': row[2],
+                    'years_experience': str(row[3]) if row[3] is not None else '',
+                }
+                for row in cur.fetchall()
+            ]
+        finally:
+            cur.close()
+
+    @classmethod
+    def _list_languages(cls, user_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT id, language_name, reading_level, writing_level, speaking_level
+                FROM student_languages
+                WHERE user_id=%s
+                ORDER BY language_name ASC
+                ''',
+                (user_id,),
+            )
+            return [
+                {
+                    'id': row[0],
+                    'language_name': row[1],
+                    'reading_level': row[2],
+                    'writing_level': row[3],
+                    'speaking_level': row[4],
+                }
+                for row in cur.fetchall()
+            ]
+        finally:
+            cur.close()
+
+    @classmethod
+    def _build_sections(cls, user, student_profile, projects, certificates, uploaded_documents, resume_profile, social_links, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None):
         basic_completion = cls._completion(
             [
                 user['name'],
@@ -552,7 +923,19 @@ class StudentProfileModel:
                 student_profile['roll_number'] if student_profile else '',
             ]
         )
-        skills_completion = cls._completion([user['skills']])
+        technical_skills = technical_skills or []
+        soft_skills = soft_skills or []
+        skill_tools = skill_tools or []
+        languages = languages or []
+        skills_completion = 0
+        if technical_skills:
+            skills_completion += 40
+        if soft_skills:
+            skills_completion += 20
+        if skill_tools:
+            skills_completion += 15
+        if languages:
+            skills_completion += 25
         project_completion = 0
         if projects:
             project_completion = round(
@@ -605,7 +988,36 @@ class StudentProfileModel:
                 ) / len(social_links)
             )
         emergency_completion = cls._completion([user['emergency_contact']])
-        medical_completion = cls._completion([user['medical_notes']])
+        medical_report = medical_report or {}
+        medicines = medicines or []
+        vaccinations = vaccinations or []
+        medical_documents = medical_documents or []
+        medical_completion = cls._completion(
+            [
+                medical_report.get('blood_group') or user.get('blood_group'),
+                medical_report.get('height'),
+                medical_report.get('weight'),
+                medical_report.get('bmi'),
+                medical_report.get('blood_pressure'),
+                medical_report.get('pulse_rate'),
+                medical_report.get('spo2'),
+                medical_report.get('body_temperature'),
+                medical_report.get('last_health_checkup_date'),
+                medical_report.get('has_allergies'),
+                medical_report.get('diabetes'),
+                medical_report.get('hypertension'),
+                medical_report.get('heart_disease'),
+                medical_report.get('asthma'),
+                medical_report.get('epilepsy'),
+                medical_report.get('kidney_disease'),
+                medical_report.get('previous_surgery'),
+                medical_report.get('currently_taking_medicines'),
+                1 if medicines else '',
+                medical_report.get('vaccination_status'),
+                1 if vaccinations else '',
+                1 if medical_documents else '',
+            ]
+        )
 
         return [
             {'key': 'basic_information', 'title': 'Basic Information', 'completion': basic_completion},
@@ -670,6 +1082,14 @@ class StudentProfileModel:
         uploaded_documents = cls._list_uploaded_documents(user_id)
         resume_profile = cls._get_resume_profile(user_id)
         social_links = cls._list_social_links(user_id)
+        medical_report = cls._get_medical_report(user_id)
+        medicines = cls._list_medicines(user_id)
+        vaccinations = cls._list_vaccinations(user_id)
+        medical_documents = cls._list_medical_documents(user_id)
+        technical_skills = cls._list_technical_skills(user_id)
+        soft_skills = cls._list_soft_skills(user_id)
+        skill_tools = cls._list_skill_tools(user_id)
+        languages = cls._list_languages(user_id)
         sections = cls._build_sections(
             user=user,
             student_profile=student_profile,
@@ -678,6 +1098,14 @@ class StudentProfileModel:
             uploaded_documents=uploaded_documents,
             resume_profile=resume_profile,
             social_links=social_links,
+            medical_report=medical_report,
+            medicines=medicines,
+            vaccinations=vaccinations,
+            medical_documents=medical_documents,
+            technical_skills=technical_skills,
+            soft_skills=soft_skills,
+            skill_tools=skill_tools,
+            languages=languages,
         )
         visible_section_keys = cls.get_visible_section_keys(user_id, 'student')
         for section in sections:
@@ -691,6 +1119,14 @@ class StudentProfileModel:
             'uploaded_documents': uploaded_documents,
             'resume_profile': resume_profile or {},
             'social_links': social_links,
+            'medical_report': medical_report,
+            'medicines': medicines,
+            'vaccinations': vaccinations,
+            'medical_documents': medical_documents,
+            'technical_skills': technical_skills,
+            'soft_skills': soft_skills,
+            'skill_tools': skill_tools,
+            'languages': languages,
             'sections': sections,
             'visible_section_keys': visible_section_keys,
             'overall_completion': overall_completion,
@@ -714,6 +1150,8 @@ class StudentProfileModel:
                     city=%s,
                     state=%s,
                     pin_code=%s,
+                    district_id=%s,
+                    taluka_id=%s,
                     nationality=%s,
                     photo=%s
                 WHERE id=%s
@@ -729,6 +1167,8 @@ class StudentProfileModel:
                     payload.get('city'),
                     payload.get('state'),
                     payload.get('pin_code'),
+                    payload.get('district_id'),
+                    payload.get('taluka_id'),
                     payload.get('nationality'),
                     payload.get('photo'),
                     user_id,
@@ -845,26 +1285,201 @@ class StudentProfileModel:
 
     @classmethod
     def update_medical_report(cls, user_id, payload):
+        cls.ensure_tables()
+        height = payload.get('height') or None
+        weight = payload.get('weight') or None
+        bmi = None
+        try:
+            height_m = float(height) / 100 if height else 0
+            weight_kg = float(weight) if weight else 0
+            if height_m > 0 and weight_kg > 0:
+                bmi = round(weight_kg / (height_m * height_m), 2)
+        except (TypeError, ValueError):
+            bmi = None
+
+        has_allergies = payload.get('has_allergies')
+        previous_surgery = payload.get('previous_surgery')
+        currently_taking_medicines = payload.get('currently_taking_medicines')
+        allergy_values = {
+            'drug_allergies': payload.get('drug_allergies') if has_allergies == 'yes' else None,
+            'food_allergies': payload.get('food_allergies') if has_allergies == 'yes' else None,
+            'other_allergies': payload.get('other_allergies') if has_allergies == 'yes' else None,
+            'allergy_details': payload.get('allergy_details') if has_allergies == 'yes' else None,
+        }
+        surgery_details = payload.get('surgery_details') if previous_surgery == 'yes' else None
         conn, cur = cls._get_conn_and_cursor()
         try:
-            cur.execute('UPDATE users SET medical_notes=%s WHERE id=%s', (payload.get('medical_notes'), user_id))
+            cur.execute(
+                '''
+                INSERT INTO student_medical_reports (
+                    user_id, blood_group, height, weight, bmi, blood_pressure, pulse_rate, spo2,
+                    body_temperature, last_health_checkup_date, has_allergies, drug_allergies,
+                    food_allergies, other_allergies, allergy_details, diabetes, hypertension,
+                    heart_disease, asthma, epilepsy, kidney_disease, other_medical_condition,
+                    previous_surgery, surgery_details, currently_taking_medicines, vaccination_status
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    blood_group=VALUES(blood_group), height=VALUES(height), weight=VALUES(weight), bmi=VALUES(bmi),
+                    blood_pressure=VALUES(blood_pressure), pulse_rate=VALUES(pulse_rate), spo2=VALUES(spo2),
+                    body_temperature=VALUES(body_temperature), last_health_checkup_date=VALUES(last_health_checkup_date),
+                    has_allergies=VALUES(has_allergies), drug_allergies=VALUES(drug_allergies),
+                    food_allergies=VALUES(food_allergies), other_allergies=VALUES(other_allergies),
+                    allergy_details=VALUES(allergy_details), diabetes=VALUES(diabetes),
+                    hypertension=VALUES(hypertension), heart_disease=VALUES(heart_disease), asthma=VALUES(asthma),
+                    epilepsy=VALUES(epilepsy), kidney_disease=VALUES(kidney_disease),
+                    other_medical_condition=VALUES(other_medical_condition),
+                    previous_surgery=VALUES(previous_surgery), surgery_details=VALUES(surgery_details),
+                    currently_taking_medicines=VALUES(currently_taking_medicines),
+                    vaccination_status=VALUES(vaccination_status)
+                ''',
+                (
+                    user_id, payload.get('blood_group'), height, weight, bmi, payload.get('blood_pressure'),
+                    payload.get('pulse_rate'), payload.get('spo2'), payload.get('body_temperature'),
+                    payload.get('last_health_checkup_date') or None, has_allergies,
+                    allergy_values['drug_allergies'], allergy_values['food_allergies'],
+                    allergy_values['other_allergies'], allergy_values['allergy_details'],
+                    payload.get('diabetes'), payload.get('hypertension'), payload.get('heart_disease'),
+                    payload.get('asthma'), payload.get('epilepsy'), payload.get('kidney_disease'),
+                    payload.get('other_medical_condition'), previous_surgery, surgery_details,
+                    currently_taking_medicines, payload.get('vaccination_status'),
+                ),
+            )
+            cur.execute('UPDATE users SET blood_group=%s WHERE id=%s', (payload.get('blood_group'), user_id))
+            cur.execute('DELETE FROM student_medicines WHERE user_id=%s', (user_id,))
+            if currently_taking_medicines == 'yes':
+                for medicine in payload.get('medicines') or []:
+                    if medicine.get('medicine_name'):
+                        cur.execute(
+                            '''
+                            INSERT INTO student_medicines (user_id, medicine_name, dosage, frequency, purpose)
+                            VALUES (%s, %s, %s, %s, %s)
+                            ''',
+                            (user_id, medicine.get('medicine_name'), medicine.get('dosage'), medicine.get('frequency'), medicine.get('purpose')),
+                        )
+            cur.execute('DELETE FROM student_vaccinations WHERE user_id=%s', (user_id,))
+            for vaccination in payload.get('vaccinations') or []:
+                if vaccination.get('vaccine_name'):
+                    cur.execute(
+                        '''
+                        INSERT INTO student_vaccinations (user_id, vaccine_name, dose, vaccination_date, next_due_date)
+                        VALUES (%s, %s, %s, %s, %s)
+                        ''',
+                        (
+                            user_id, vaccination.get('vaccine_name'), vaccination.get('dose'),
+                            vaccination.get('vaccination_date') or None, vaccination.get('next_due_date') or None,
+                        ),
+                    )
+            for document in payload.get('documents') or []:
+                if document.get('document_name') and document.get('document_type') and document.get('file_path'):
+                    cur.execute(
+                        '''
+                        INSERT INTO student_medical_documents (
+                            user_id, document_name, document_type, document_date, description, file_path
+                        ) VALUES (%s, %s, %s, %s, %s, %s)
+                        ''',
+                        (
+                            user_id, document.get('document_name'), document.get('document_type'),
+                            document.get('document_date') or None, document.get('description'), document.get('file_path'),
+                        ),
+                    )
             conn.commit()
+        finally:
+            cur.close()
+
+    @classmethod
+    def delete_medical_document(cls, user_id, document_id):
+        cls.ensure_tables()
+        conn, cur = cls._get_conn_and_cursor()
+        try:
+            cur.execute('DELETE FROM student_medical_documents WHERE id=%s AND user_id=%s', (document_id, user_id))
+            conn.commit()
+            return cur.rowcount > 0
         finally:
             cur.close()
 
     @classmethod
     def update_skills(cls, user_id, payload):
+        cls.ensure_tables()
+        technical_skills = payload.get('technical_skills') or []
+        soft_skills = payload.get('soft_skills') or []
+        skill_tools = payload.get('skill_tools') or []
+        languages = payload.get('languages') or []
         conn, cur = cls._get_conn_and_cursor()
         try:
-            cur.execute('UPDATE users SET skills=%s WHERE id=%s', (payload.get('skills'), user_id))
+            cur.execute('DELETE FROM student_technical_skills WHERE user_id=%s', (user_id,))
+            cur.execute('DELETE FROM student_soft_skills WHERE user_id=%s', (user_id,))
+            cur.execute('DELETE FROM student_skill_tools WHERE user_id=%s', (user_id,))
+            cur.execute('DELETE FROM student_languages WHERE user_id=%s', (user_id,))
+            for skill in technical_skills:
+                cur.execute(
+                    '''
+                    INSERT INTO student_technical_skills (
+                        user_id, skill_name, skill_category, proficiency_level, years_experience
+                    ) VALUES (%s, %s, %s, %s, %s)
+                    ''',
+                    (
+                        user_id,
+                        skill.get('skill_name'),
+                        skill.get('skill_category'),
+                        skill.get('proficiency_level'),
+                        skill.get('years_experience') or None,
+                    ),
+                )
+            for skill in soft_skills:
+                cur.execute(
+                    'INSERT INTO student_soft_skills (user_id, skill_name) VALUES (%s, %s)',
+                    (user_id, skill.get('skill_name')),
+                )
+            for tool in skill_tools:
+                cur.execute(
+                    '''
+                    INSERT INTO student_skill_tools (user_id, tool_name, proficiency_level, years_experience)
+                    VALUES (%s, %s, %s, %s)
+                    ''',
+                    (user_id, tool.get('tool_name'), tool.get('proficiency_level'), tool.get('years_experience') or None),
+                )
+            for language in languages:
+                cur.execute(
+                    '''
+                    INSERT INTO student_languages (
+                        user_id, language_name, reading_level, writing_level, speaking_level
+                    ) VALUES (%s, %s, %s, %s, %s)
+                    ''',
+                    (
+                        user_id,
+                        language.get('language_name'),
+                        language.get('reading_level'),
+                        language.get('writing_level'),
+                        language.get('speaking_level'),
+                    ),
+                )
+            summary_parts = []
+            if technical_skills:
+                summary_parts.append('Technical Skills: ' + ', '.join(skill['skill_name'] for skill in technical_skills))
+            if soft_skills:
+                summary_parts.append('Soft Skills: ' + ', '.join(skill['skill_name'] for skill in soft_skills))
+            if skill_tools:
+                summary_parts.append('Tools: ' + ', '.join(tool['tool_name'] for tool in skill_tools))
+            if languages:
+                summary_parts.append('Languages: ' + ', '.join(language['language_name'] for language in languages))
+            cur.execute('UPDATE users SET skills=%s WHERE id=%s', (' | '.join(summary_parts) or None, user_id))
             conn.commit()
+            return True, ''
+        except Exception as exc:
+            conn.rollback()
+            return False, str(exc)
         finally:
             cur.close()
 
     @classmethod
     def clear_skills(cls, user_id):
+        cls.ensure_tables()
         conn, cur = cls._get_conn_and_cursor()
         try:
+            cur.execute('DELETE FROM student_technical_skills WHERE user_id=%s', (user_id,))
+            cur.execute('DELETE FROM student_soft_skills WHERE user_id=%s', (user_id,))
+            cur.execute('DELETE FROM student_skill_tools WHERE user_id=%s', (user_id,))
+            cur.execute('DELETE FROM student_languages WHERE user_id=%s', (user_id,))
             cur.execute('UPDATE users SET skills=NULL WHERE id=%s', (user_id,))
             conn.commit()
         finally:

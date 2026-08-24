@@ -10,14 +10,14 @@
         <h3 class="profile-title mb-1">{{ section.title }}</h3>
       </div>
       <div class="section-detail-score">
-        {% if section.key == 'projects' %}{{ projects|length }}{% elif section.key == 'certificates' %}{{ certificates|length }}{% elif section.key == 'upload_documents' %}{{ uploaded_documents|length }}{% elif section.key == 'social_links' %}{{ social_links|length }}{% elif section.key == 'work_experience' %}{{ experiences|length }}{% else %}{{ section.completion }}%{% endif %}
+        {% if section.key == 'projects' %}{{ projects|length }}{% elif section.key == 'certificates' %}{{ certificates|length }}{% elif section.key == 'upload_documents' %}{{ uploaded_documents|length }}{% elif section.key == 'social_links' %}{{ social_links|length }}{% elif section.key == 'work_experience' %}{{ experiences|length }}{% else %}{{ section.completion }}%{% if section.completion == 100 %} ✓{% endif %}{% endif %}
       </div>
     </div>
   </div>
 
   <div class="section-detail-panel">
     <div class="section-detail-content">
-      {{ detail_rows(section, user, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, social_links=social_links, experiences=experiences) }}
+      {{ detail_rows(section, user, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, social_links=social_links, experiences=experiences, medical_report=medical_report, medicines=medicines, vaccinations=vaccinations, medical_documents=medical_documents, technical_skills=technical_skills, soft_skills=soft_skills, skill_tools=skill_tools, languages=languages) }}
     </div>
     <button class="section-detail-edit-btn" type="button" data-bs-toggle="collapse" data-bs-target="#section_edit_form_{{ section.key }}" aria-expanded="false" aria-controls="section_edit_form_{{ section.key }}">
       Edit

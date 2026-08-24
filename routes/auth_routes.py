@@ -2,18 +2,37 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 import werkzeug
 from models.user import UserModel
 from models.registration import RegistrationModel
+from models.registration_payment import RegistrationPaymentModel
 from models.student_profile import StudentProfileModel
 from models.employee_profile import EmployeeProfileModel
 from services.db import get_db
 from services.profile_engine import ProfileEngine
-from services.qrcode_service import generate_qr_for_user
+from services.qrcode_service import generate_qr_for_user, render_premium_card
+from services.registration_gateways import GatewayError, MSG91Gateway, RazorpayGateway
+from models.card_permission import CardPermissionModel
+from models.qr_identity import QRIdentityModel
 import os
 import secrets
 import qrcode
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageDraw
 
 auth_bp = Blueprint('auth', __name__, template_folder='../templates/auth')
+
+
+REGISTRATION_TYPE_ROUTES = {
+    'student': 'auth.register_student',
+    'employee': 'auth.register_employee',
+    'general_user': 'auth.register_general',
+    'organization': 'auth.register_organization',
+}
+
+REGISTRATION_USER_TYPE_MAP = {
+    'student': ('student', 'student'),
+    'employee': ('employee', 'employee'),
+    'general_user': ('emergency', 'general_user'),
+    'organization': ('employee', 'organization'),
+}
 
 
 def _get_profile_completion(user):
@@ -111,12 +130,193 @@ def _create_public_user(user_type, full_name, mobile, email, password):
             'qr_path': None,
         }
     )
+    CardPermissionModel.set_user_card_type(uid, user_type)
+    CardPermissionModel.assign_defaults_for_user(uid)
     return uid
 
 
 @auth_bp.route('/register/select')
 def register_select():
-    return render_template('auth/register_select.html')
+    return render_template('auth/register_select.html', pricing=RegistrationPaymentModel.list_pricing())
+
+
+@auth_bp.route('/register/start/<user_type>')
+def register_start(user_type):
+    user_type = RegistrationPaymentModel.normalize_user_type(user_type)
+    if not user_type:
+        abort(404)
+    amount = RegistrationPaymentModel.get_price(user_type)
+    if amount is None:
+        flash('Registration pricing is not active for this user type', 'warning')
+        return redirect(url_for('auth.register_select'))
+    token = secrets.token_urlsafe(32)
+    session['registration_payment_token'] = token
+    session['registration_payment_user_type'] = user_type
+    return redirect(url_for('auth.registration_mobile'))
+
+
+@auth_bp.route('/register/mobile', methods=['GET', 'POST'])
+def registration_mobile():
+    token = session.get('registration_payment_token')
+    user_type = RegistrationPaymentModel.normalize_user_type(session.get('registration_payment_user_type'))
+    if not token or not user_type:
+        return redirect(url_for('auth.register_select'))
+    amount = RegistrationPaymentModel.get_price(user_type)
+    if amount is None:
+        flash('Registration pricing is not active for this user type', 'warning')
+        return redirect(url_for('auth.register_select'))
+    if request.method == 'POST':
+        mobile = (request.form.get('mobile') or '').strip()
+        if not mobile:
+            flash('Mobile number is required', 'warning')
+            return redirect(url_for('auth.registration_mobile'))
+        try:
+            otp_response = MSG91Gateway.send_otp(mobile)
+        except GatewayError as exc:
+            flash(f'Could not send OTP: {exc}', 'danger')
+            return redirect(url_for('auth.registration_mobile'))
+        RegistrationPaymentModel.create_attempt(token, user_type, mobile, amount)
+        RegistrationPaymentModel.update_attempt(
+            token,
+            otp_status='sent',
+            surepass_client_id=otp_response.get('request_id'),
+            status='otp_sent',
+            metadata={'otp_sent': True, 'provider': 'msg91', 'temporary_test_otp': True},
+        )
+        flash('OTP sent successfully', 'success')
+        return redirect(url_for('auth.registration_verify_otp'))
+    return render_template(
+        'auth/register_mobile.html',
+        user_type=user_type,
+        user_label=RegistrationPaymentModel.LABELS[user_type],
+        amount=amount,
+        status='Mobile Number',
+    )
+
+
+@auth_bp.route('/register/verify-mobile', methods=['GET', 'POST'])
+def registration_verify_otp():
+    token = session.get('registration_payment_token')
+    attempt = RegistrationPaymentModel.get_attempt(token) if token else None
+    if not attempt:
+        return redirect(url_for('auth.register_select'))
+    if request.method == 'POST':
+        otp = (request.form.get('otp') or '').strip()
+        if not otp:
+            flash('OTP is required', 'warning')
+            return redirect(url_for('auth.registration_verify_otp'))
+        try:
+            MSG91Gateway.verify_otp(attempt.get('mobile'), otp)
+        except GatewayError as exc:
+            RegistrationPaymentModel.update_attempt(token, otp_status='failed', status='otp_failed')
+            flash(f'OTP verification failed: {exc}', 'danger')
+            return redirect(url_for('auth.registration_verify_otp'))
+        RegistrationPaymentModel.update_attempt(token, otp_status='verified', status='otp_verified')
+        flash('OTP verified successfully', 'success')
+        return redirect(url_for('auth.registration_payment'))
+    return render_template(
+        'auth/register_verify_payment_otp.html',
+        attempt=attempt,
+        user_label=RegistrationPaymentModel.LABELS[attempt['user_type']],
+    )
+
+
+@auth_bp.route('/register/resend-otp', methods=['POST'])
+def registration_resend_otp():
+    token = session.get('registration_payment_token')
+    attempt = RegistrationPaymentModel.get_attempt(token) if token else None
+    if not attempt:
+        return redirect(url_for('auth.register_select'))
+    if attempt['otp_status'] == 'verified':
+        flash('Mobile number is already verified', 'info')
+        return redirect(url_for('auth.registration_payment'))
+    try:
+        otp_response = MSG91Gateway.resend_otp(attempt['mobile'])
+    except GatewayError as exc:
+        flash(f'Could not resend OTP: {exc}', 'danger')
+        return redirect(url_for('auth.registration_verify_otp'))
+    RegistrationPaymentModel.update_attempt(
+        token,
+        otp_status='sent',
+        surepass_client_id=otp_response.get('request_id'),
+        status='otp_sent',
+        metadata={'otp_resent': True, 'provider': 'msg91', 'temporary_test_otp': True},
+    )
+    flash('OTP resent successfully', 'success')
+    return redirect(url_for('auth.registration_verify_otp'))
+
+
+@auth_bp.route('/register/payment')
+def registration_payment():
+    token = session.get('registration_payment_token')
+    attempt = RegistrationPaymentModel.get_attempt(token) if token else None
+    if not attempt:
+        return redirect(url_for('auth.register_select'))
+    if attempt['otp_status'] != 'verified':
+        flash('Verify OTP before payment', 'warning')
+        return redirect(url_for('auth.registration_verify_otp'))
+    if attempt['payment_status'] == 'paid':
+        return redirect(url_for(REGISTRATION_TYPE_ROUTES[attempt['user_type']]))
+    return render_template(
+        'auth/register_payment.html',
+        attempt=attempt,
+        user_label=RegistrationPaymentModel.LABELS[attempt['user_type']],
+        razorpay_key_id=current_app.config.get('RAZORPAY_KEY_ID', ''),
+    )
+
+
+@auth_bp.route('/register/payment/create-order', methods=['POST'])
+def registration_create_order():
+    token = session.get('registration_payment_token')
+    attempt = RegistrationPaymentModel.get_attempt(token) if token else None
+    if not attempt or attempt['otp_status'] != 'verified':
+        return {'ok': False, 'message': 'OTP verification required'}, 403
+    current_amount = RegistrationPaymentModel.get_price(attempt['user_type'])
+    if current_amount is None or int(round(current_amount * 100)) != attempt['amount_paise']:
+        return {'ok': False, 'message': 'Registration price changed. Please restart registration.'}, 409
+    if attempt['razorpay_order_id']:
+        return {'ok': True, 'order_id': attempt['razorpay_order_id'], 'amount': attempt['amount_paise']}
+    try:
+        order = RazorpayGateway.create_order(attempt['amount_paise'], f'reg_{attempt["id"]}')
+    except GatewayError as exc:
+        return {'ok': False, 'message': str(exc)}, 502
+    RegistrationPaymentModel.update_attempt(
+        token,
+        razorpay_order_id=order.get('id'),
+        payment_status='pending',
+        status='payment_pending',
+    )
+    return {'ok': True, 'order_id': order.get('id'), 'amount': attempt['amount_paise']}
+
+
+@auth_bp.route('/register/payment/verify', methods=['POST'])
+def registration_verify_payment():
+    token = session.get('registration_payment_token')
+    attempt = RegistrationPaymentModel.get_attempt(token) if token else None
+    if not attempt or attempt['otp_status'] != 'verified':
+        return {'ok': False, 'message': 'OTP verification required'}, 403
+    payload = request.get_json(silent=True) or request.form
+    order_id = payload.get('razorpay_order_id')
+    payment_id = payload.get('razorpay_payment_id')
+    signature = payload.get('razorpay_signature')
+    if order_id != attempt['razorpay_order_id']:
+        RegistrationPaymentModel.update_attempt(token, payment_status='failed', status='payment_failed')
+        return {'ok': False, 'message': 'Invalid order'}, 400
+    try:
+        valid = RazorpayGateway.verify_signature(order_id, payment_id, signature)
+    except GatewayError as exc:
+        return {'ok': False, 'message': str(exc)}, 502
+    if not valid:
+        RegistrationPaymentModel.update_attempt(token, payment_status='failed', status='payment_failed')
+        return {'ok': False, 'message': 'Payment verification failed'}, 400
+    RegistrationPaymentModel.update_attempt(
+        token,
+        razorpay_payment_id=payment_id,
+        razorpay_signature=signature,
+        payment_status='paid',
+        status='payment_successful',
+    )
+    return {'ok': True, 'redirect_url': url_for(REGISTRATION_TYPE_ROUTES[attempt['user_type']])}
 
 
 @auth_bp.route('/register/student', methods=['GET', 'POST'])
@@ -131,19 +331,21 @@ def register_employee():
 
 @auth_bp.route('/register/general', methods=['GET', 'POST'])
 def register_general():
-    return _public_registration_handler('emergency')
+    return _public_registration_handler('emergency', card_user_type='general_user')
 
 
 @auth_bp.route('/register/organization', methods=['GET', 'POST'])
 def register_organization():
-    return _public_registration_handler('employee')
+    return _public_registration_handler('employee', card_user_type='organization')
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    flash('Select your user type to start mobile verification and payment.', 'info')
+    return redirect(url_for('auth.register_select'))
     if request.method == 'POST':
         full_name = (request.form.get('full_name') or '').strip()
-        mobile = (request.form.get('mobile') or '').strip()
+        mobile = attempt['mobile']
         email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
         confirm_password = request.form.get('confirm_password') or ''
@@ -182,6 +384,8 @@ def register():
                 'qr_path': None,
             }
         )
+        CardPermissionModel.set_user_card_type(uid, 'general_user')
+        CardPermissionModel.assign_defaults_for_user(uid)
         session['registration_user_id'] = uid
         flash('Registration Step 1 completed. Choose your profile.', 'success')
         return redirect(url_for('auth.choose_profiles'))
@@ -313,7 +517,20 @@ def edit_profiles():
     return redirect(url_for('auth.choose_profiles'))
 
 
-def _public_registration_handler(user_type):
+def _public_registration_handler(user_type, card_user_type=None):
+    gate_user_type = card_user_type or user_type
+    token = session.get('registration_payment_token')
+    attempt = RegistrationPaymentModel.get_attempt(token) if token else None
+    if not attempt or attempt['user_type'] != gate_user_type:
+        flash('Please verify your mobile and complete payment first', 'warning')
+        return redirect(url_for('auth.register_select'))
+    if attempt['otp_status'] != 'verified':
+        flash('Verify OTP before registration', 'warning')
+        return redirect(url_for('auth.registration_verify_otp'))
+    if attempt['payment_status'] != 'paid':
+        flash('Complete payment before registration', 'warning')
+        return redirect(url_for('auth.registration_payment'))
+
     if request.method == 'POST':
         full_name = (request.form.get('full_name') or '').strip()
         mobile = (request.form.get('mobile') or '').strip()
@@ -332,21 +549,26 @@ def _public_registration_handler(user_type):
             return redirect(request.url)
 
         uid = _create_public_user(user_type, full_name, mobile, email, password)
-        session['registration_user_id'] = uid
-        session['registration_user_type'] = user_type
-        session['registration_mobile'] = mobile
-        session['registration_otp'] = '1111'
-        flash('Registration successful. Please verify your OTP.', 'success')
-        return redirect(url_for('auth.verify_otp'))
+        CardPermissionModel.set_user_card_type(uid, card_user_type or user_type)
+        RegistrationPaymentModel.update_attempt(token, user_id=uid, status='registration_created')
+        session.pop('registration_payment_token', None)
+        session.pop('registration_payment_user_type', None)
+        flash('Payment successful. Registration completed. Please log in.', 'success')
+        return redirect(url_for('auth.login'))
 
-    return render_template('auth/register_public.html')
+    return render_template(
+        'auth/register_public.html',
+        paid_attempt=attempt,
+        user_label=RegistrationPaymentModel.LABELS[gate_user_type],
+    )
 
 
 @auth_bp.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
     if request.method == 'POST':
         entered_otp = (request.form.get('otp') or '').strip()
-        if entered_otp == session.get('registration_otp'):
+        # Accept either the generated/session OTP or the temporary testing OTP '11111'
+        if entered_otp == session.get('registration_otp') or entered_otp == '11111':
             user_id = session.get('registration_user_id')
             if user_id:
                 from services.db import get_conn
@@ -472,6 +694,10 @@ def dashboard_public():
         return redirect(url_for('auth.login'))
 
     user = UserModel.find_by_qr_token(qr_token)
+    if not user:
+        profile_card = QRIdentityModel.find_by_token_and_type(qr_token, QRIdentityModel.PROFILE)
+        if profile_card:
+            user = UserModel.find_by_id(profile_card[1])
 
     if not user:
         abort(404)
@@ -484,7 +710,7 @@ def dashboard_public():
         visible_section_keys = data.get('visible_section_keys', set())
         data['profile_sections'] = [
             section for section in data.get('profile_sections', [])
-            if section.get('key') in visible_section_keys
+            if section.get('key') in visible_section_keys and section.get('key') != 'emergency_contact'
         ]
         return render_template('profile/public_dashboard.html', hide_navbar=True, public_qr_token=qr_token, **data)
 
@@ -516,8 +742,8 @@ def generate_qr():
     if row[19] and row[20]:
         return redirect(url_for('auth.qr_view'))
     # Generate QR with actual server URL
-    scan_url_template = url_for('qr.scan', token='__TOKEN__', _external=True)
-    token, path = generate_qr_for_user(user_id, scan_url_template)
+    scan_url_template = url_for('qr.profile', token='__TOKEN__', _external=True)
+    token, path = generate_qr_for_user(user_id, scan_url_template, qr_type=QRIdentityModel.PROFILE)
     UserModel.update_qr(user_id, token, path)
     flash('QR generated successfully', 'success')
     return redirect(url_for('auth.qr_view'))
@@ -528,9 +754,46 @@ def qr_view():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
     user = UserModel.find_by_id(session['user_id'])
-    qr_path = user[20] if user and len(user) > 20 else None
-    scan_url = url_for('qr.scan', token=user[19], _external=True) if user and user[19] else None
-    return render_template('auth/qr_view.html', qr_path=qr_path, scan_url=scan_url)
+    if not user:
+        flash('User not found', 'warning')
+        return redirect(url_for('auth.dashboard'))
+
+    profile_card = QRIdentityModel.ensure_for_user(
+        user[0],
+        QRIdentityModel.PROFILE,
+        url_for('qr.profile', token='__TOKEN__', _external=True),
+    )
+    emergency_card = QRIdentityModel.ensure_for_user(
+        user[0],
+        QRIdentityModel.EMERGENCY,
+        url_for('qr.emergency', token='__TOKEN__', _external=True),
+    )
+    if not user[19] or not user[20]:
+        UserModel.update_qr(user[0], profile_card['token'], profile_card['path'])
+
+    qr_cards = {
+        'emergency': {
+            'title': 'Emergency QR',
+            'label': 'EMERGENCY IDENTITY',
+            'badge': 'Emergency Only',
+            'description': 'Scan to access emergency contact information',
+            'scan_url': url_for('qr.emergency', token=emergency_card['token'], _external=True),
+            'path': emergency_card['path'],
+            'download_png': url_for('auth.download_png', qr_type='emergency'),
+            'download_pdf': url_for('auth.download_pdf', qr_type='emergency'),
+        },
+        'profile': {
+            'title': 'QR-NexID Digital Identity',
+            'label': 'DIGITAL IDENTITY',
+            'badge': 'Verified Digital Identity',
+            'description': 'Scan to view complete digital identity',
+            'scan_url': url_for('qr.profile', token=profile_card['token'], _external=True),
+            'path': profile_card['path'],
+            'download_png': url_for('auth.download_png', qr_type='profile'),
+            'download_pdf': url_for('auth.download_pdf', qr_type='profile'),
+        },
+    }
+    return render_template('auth/qr_view.html', user=user, qr_cards=qr_cards)
 
 
 @auth_bp.route('/download-png')
@@ -538,11 +801,23 @@ def download_png():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
     user = UserModel.find_by_id(session['user_id'])
-    if not user or not user[20]:
+    qr_type = request.args.get('qr_type') or QRIdentityModel.PROFILE
+    if qr_type not in (QRIdentityModel.PROFILE, QRIdentityModel.EMERGENCY):
+        abort(404)
+    card = QRIdentityModel.ensure_for_user(
+        user[0],
+        qr_type,
+        url_for(f'qr.{qr_type}', token='__TOKEN__', _external=True),
+    ) if user else None
+    if not user or not card or not card.get('path'):
         flash('Generate QR first', 'warning')
         return redirect(url_for('auth.qr_view'))
-    file_path = os.path.join(current_app.root_path, user[20])
-    return send_file(file_path, mimetype='image/png', as_attachment=True, download_name='lifeshield_qr.png')
+    file_path = QRIdentityModel.file_path(card['path'])
+    card_image = render_premium_card(file_path, user[2], qr_type)
+    buf = BytesIO()
+    card_image.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png', as_attachment=True, download_name=f'qr-nexid-{qr_type}-card.png')
 
 
 @auth_bp.route('/download-pdf')
@@ -550,46 +825,24 @@ def download_pdf():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
     user = UserModel.find_by_id(session['user_id'])
-    if not user or not user[20]:
+    qr_type = request.args.get('qr_type') or QRIdentityModel.PROFILE
+    if qr_type not in (QRIdentityModel.PROFILE, QRIdentityModel.EMERGENCY):
+        abort(404)
+    card = QRIdentityModel.ensure_for_user(
+        user[0],
+        qr_type,
+        url_for(f'qr.{qr_type}', token='__TOKEN__', _external=True),
+    ) if user else None
+    if not user or not card or not card.get('path'):
         flash('Generate QR first', 'warning')
         return redirect(url_for('auth.qr_view'))
 
-    pdf_content = f"""%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 420 220] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
-endobj
-4 0 obj
-<< /Length 110 >>
-stream
-BT /F1 18 Tf 40 180 Td (LifeShield QR Card) Tj 0 -28 Td /F1 12 Tf ({user[2]}) Tj 0 -20 Td (Token: {user[19]}) Tj ET
-endstream
-endobj
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-xref
-0 6
-0000000000 65535 f 
-0000000010 00000 n 
-0000000062 00000 n 
-0000000119 00000 n 
-0000000207 00000 n 
-0000000302 00000 n 
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-0
-%%EOF
-"""
-    buf = BytesIO(pdf_content.encode('latin-1'))
+    file_path = QRIdentityModel.file_path(card['path'])
+    canvas = render_premium_card(file_path, user[2], qr_type)
+    buf = BytesIO()
+    canvas.save(buf, format='PDF', resolution=150.0)
     buf.seek(0)
-    return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name='lifeshield_qr.pdf')
+    return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=f'qr-nexid-{qr_type}.pdf')
 
 
 @auth_bp.route('/dashboard')

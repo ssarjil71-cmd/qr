@@ -51,6 +51,44 @@
             <div><strong>Family Doctor:</strong> {{ user.emergency_doctor_name or '-' }} • {{ user.emergency_doctor_phone or '-' }}</div>
             <div><strong>Address:</strong> {{ user.emergency_address or '-' }}</div>
             <div><strong>Emergency Note:</strong> {{ user.emergency_note or '-' }}</div>
+          {% elif section.key == 'medical_report' %}
+            {% if medical_report %}
+              <div class="mb-2"><strong>Medical Report:</strong> {{ section.completion }}%{% if section.completion == 100 %} ✓{% endif %}</div>
+              <div><strong>Blood Group:</strong> {{ medical_report.get('blood_group') or user.blood_group or '-' }}</div>
+              <div><strong>Height:</strong> {{ medical_report.get('height') or '-' }}{% if medical_report.get('height') %} cm{% endif %}</div>
+              <div><strong>Weight:</strong> {{ medical_report.get('weight') or '-' }}{% if medical_report.get('weight') %} kg{% endif %}</div>
+              <div><strong>BMI:</strong> {{ medical_report.get('bmi') or '-' }}</div>
+              <div><strong>Blood Pressure:</strong> {{ medical_report.get('blood_pressure') or '-' }}</div>
+              <div><strong>Pulse Rate:</strong> {{ medical_report.get('pulse_rate') or '-' }}</div>
+              <div><strong>SpO2:</strong> {{ medical_report.get('spo2') or '-' }}</div>
+              <div><strong>Body Temperature:</strong> {{ medical_report.get('body_temperature') or '-' }}</div>
+              <div><strong>Last Health Checkup Date:</strong> {{ medical_report.get('last_health_checkup_date') or '-' }}</div>
+              <div><strong>Allergies:</strong> {{ (medical_report.get('has_allergies') or '-')|title }}</div>
+              <div>
+                <strong>Important Medical History:</strong>
+                {% set history = [] %}
+                {% for field, label in [('diabetes', 'Diabetes'), ('hypertension', 'Hypertension'), ('heart_disease', 'Heart Disease'), ('asthma', 'Asthma'), ('epilepsy', 'Epilepsy'), ('kidney_disease', 'Kidney Disease')] %}
+                  {% if medical_report.get(field) == 'yes' %}{% set _ = history.append(label) %}{% endif %}
+                {% endfor %}
+                {{ history|join(', ') if history else 'No major conditions marked' }}
+              </div>
+              <div><strong>Current Medication:</strong> {{ (medical_report.get('currently_taking_medicines') or '-')|title }}</div>
+              <div><strong>Vaccination Status:</strong> {{ medical_report.get('vaccination_status') or '-' }}</div>
+              <div class="mt-2"><strong>Medical Documents:</strong> {{ medical_documents|length }}</div>
+              {% if medical_documents %}
+                {% for document in medical_documents %}
+                <div class="mb-2">
+                  <strong>{{ document.document_name }}</strong>
+                  <div>{{ document.document_type.replace('_', ' ').title() }}</div>
+                  {% if document.file_path %}
+                    <a href="{{ url_for('user.uploads', filename=document.file_path.replace('static/uploads/', '')) }}" target="_blank" rel="noopener">View File</a>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              {% endif %}
+            {% else %}
+              <div>No medical information added yet.</div>
+            {% endif %}
           {% elif section.key == 'skills' %}
             <div>{{ user.skills or 'No skills added yet.' }}</div>
           {% elif section.key == 'projects' %}

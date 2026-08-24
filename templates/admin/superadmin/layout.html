@@ -445,7 +445,7 @@
         <i class="bi bi-shield-shaded"></i>
       </a>
       <div class="sidebar-logo-text">
-        <div class="fw-bold fs-5">LifeShield QR</div>
+        <div class="fw-bold fs-5">QR-NexID</div>
         <small class="text-muted">Super Admin</small>
       </div>
     </div>
@@ -469,9 +469,25 @@
 
       <div class="sidebar-group">
         <div class="sidebar-group-title">Management</div>
+        <a class="sidebar-link {% if request.endpoint in ['superadmin.assign_cards', 'superadmin.manage_user_cards'] %}active{% endif %}" href="{{ url_for('superadmin.assign_cards') }}">
+          <i class="bi bi-ui-checks-grid"></i><span class="link-text">Assign Cards</span>
+        </a>
+        <a class="sidebar-link {% if request.endpoint == 'superadmin.user_type_cards' %}active{% endif %}" href="{{ url_for('superadmin.user_type_cards') }}">
+          <i class="bi bi-layers-fill"></i><span class="link-text">User Type Cards</span>
+        </a>
+        <a class="sidebar-link {% if request.endpoint == 'superadmin.pricing_management' %}active{% endif %}" href="{{ url_for('superadmin.pricing_management') }}">
+          <i class="bi bi-currency-rupee"></i><span class="link-text">Pricing Management</span>
+        </a>
         <a class="sidebar-link disabled-link" href="#"><i class="bi bi-diagram-3"></i><span class="link-text">Branches</span></a>
         <a class="sidebar-link disabled-link" href="#"><i class="bi bi-diagram-2"></i><span class="link-text">Departments</span></a>
         <a class="sidebar-link disabled-link" href="#"><i class="bi bi-bezier2"></i><span class="link-text">Divisions</span></a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">Access Management</div>
+        <a class="sidebar-link {% if request.endpoint == 'superadmin.default_permissions' %}active{% endif %}" href="{{ url_for('superadmin.default_permissions') }}">
+          <i class="bi bi-toggles2"></i><span class="link-text">Default Permissions</span>
+        </a>
+        <a class="sidebar-link disabled-link" href="#"><i class="bi bi-collection"></i><span class="link-text">Card Templates</span></a>
       </div>
 
       <div class="sidebar-group">

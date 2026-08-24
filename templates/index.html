@@ -1,43 +1,170 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row align-items-center g-5 py-4">
-  <div class="col-lg-7">
-    <div class="hero-card p-4 p-lg-5">
-      <div class="d-flex align-items-center mb-4">
-        <span class="card-icon me-3"><i class="bi bi-shield-check"></i></span>
-        <span class="fw-semibold text-primary">LifeShield QR Public Portal</span>
+<main class="nexid-page">
+  <section class="nexid-hero" id="home">
+    <div class="nexid-container hero-grid">
+      <div class="hero-copy reveal">
+        <img class="hero-brand-logo" src="{{ url_for('static', filename='img/qr-nexid-logo.png') }}" alt="QR-NexID - Scan Me, Know Me">
+        <div class="nexid-badge"><i class="bi bi-shield-lock"></i> Secure Digital Identity</div>
+        <h1>One QR.<span>Your <em>Digital Identity.</em></span></h1>
+        <p class="hero-lead">Create, manage and securely share your digital identity with QR-NexID.</p>
+        <p class="hero-desc">Scan Me, Know Me. Connect your personal, professional and emergency information to one smart QR identity.</p>
+        <div class="hero-benefits">
+          <span><i class="bi bi-check-circle-fill"></i> Instant QR ID</span>
+          <span><i class="bi bi-check-circle-fill"></i> Secure Information Sharing</span>
+          <span><i class="bi bi-check-circle-fill"></i> Emergency & Professional Access</span>
+        </div>
+        <div class="hero-actions">
+          <a class="btn nexid-primary" href="{{ url_for('auth.register_select') }}">Create QR ID</a>
+          <a class="btn nexid-secondary" href="{{ url_for('auth.login') }}">Login</a>
+        </div>
       </div>
-      <h1 class="hero-title fw-bold mb-3">Secure your identity with LifeShield QR</h1>
-      <p class="hero-subtitle mb-4">Create your account to generate and manage your digital QR card in a few simple steps.</p>
-      <ul class="feature-list list-unstyled mb-4">
-        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Fast account setup</li>
-        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Manage your profile and credentials</li>
-        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Access your dashboard anytime</li>
-      </ul>
-      <div class="d-flex flex-wrap gap-3">
-        <a class="btn btn-primary btn-lg px-4" href="{{ url_for('auth.register_select') }}">Create QR Card</a>
-        <a class="btn btn-outline-primary btn-lg px-4" href="{{ url_for('auth.login') }}">Login</a>
+      <div class="hero-visual reveal">
+        <div class="hero-art-panel"><img src="{{ url_for('static', filename='img/qr-nexid-hero-art.png') }}" alt="" aria-hidden="true"></div>
+        <div class="identity-card">
+          <div class="id-card-top">
+            <img class="card-logo-img" src="{{ url_for('static', filename='img/qr-nexid-hero-art.png') }}" alt="QR-NexID - Scan Me, Know Me">
+            <span class="secure-pill">Verified</span>
+          </div>
+          <div class="card-type-label">Digital Identity</div>
+          <div class="id-card-profile">
+            <div class="avatar">JD</div>
+            <div><strong>John Doe</strong><span>Digital Identity</span></div>
+          </div>
+          <div class="qr-sample" aria-label="QR code preview">
+            {% for i in range(49) %}<span></span>{% endfor %}
+          </div>
+          <div class="id-card-meta">
+            <span><i class="bi bi-telephone-plus"></i> Emergency Contact</span>
+            <span><i class="bi bi-briefcase"></i> Professional Profile</span>
+            <span><i class="bi bi-patch-check-fill"></i> Secure/Verified</span>
+          </div>
+          <div class="card-tagline">Scan Me, Know Me</div>
+        </div>
       </div>
     </div>
-  </div>
-  <div class="col-lg-5">
-    <div class="hero-card p-4">
-      <h5 class="fw-bold mb-3">Why choose LifeShield QR?</h5>
-      <div class="d-grid gap-3">
-        <div class="border rounded p-3">
-          <div class="fw-semibold mb-1">Instant QR Generation</div>
-          <div class="text-muted small">Create a professional digital card in minutes.</div>
+  </section>
+
+  <section class="trust-strip">
+    <div class="nexid-container">
+      <h2>Trusted Digital Identity Experience</h2>
+      <div class="trust-grid">
+        <span><i class="bi bi-shield-check"></i> Secure</span>
+        <span><i class="bi bi-patch-check-fill"></i> Verified</span>
+        <span><i class="bi bi-lightning-charge-fill"></i> Fast</span>
+        <span><i class="bi bi-phone"></i> Easy to Share</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="nexid-section" id="features">
+    <div class="nexid-container">
+      <div class="section-heading">
+        <h2>Everything connected to one QR</h2>
+        <p>One digital identity for your personal, professional and emergency information.</p>
+      </div>
+      <div class="feature-grid">
+        {% set features = [
+          ('01', 'bi-person-vcard', 'Digital Identity', 'Your important identity information connected to one QR.', 'Keep personal details organized in a secure QR-NexID profile.'),
+          ('02', 'bi-heart-pulse', 'Emergency Access', 'Make essential emergency information quickly accessible.', 'Help important contacts and details stay available when they matter.'),
+          ('03', 'bi-briefcase', 'Professional Profile', 'Share your professional information and experience digitally.', 'Connect skills, work details and profile information to one scan.'),
+          ('04', 'bi-qr-code-scan', 'Smart QR Sharing', 'Scan, download, print and share your QR-NexID.', 'Use one smart QR ID across digital and printed touchpoints.')
+        ] %}
+        {% for number, icon, title, lead, text in features %}
+        <article class="feature-card reveal">
+          <div class="feature-icon"><i class="bi {{ icon }}"></i></div>
+          <span>{{ number }}</span>
+          <h3>{{ title }}</h3>
+          <strong>{{ lead }}</strong>
+          <p>{{ text }}</p>
+          <i class="bi bi-arrow-right-short feature-arrow"></i>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="nexid-section timeline-section" id="how-it-works">
+    <div class="nexid-container">
+      <div class="section-heading">
+        <h2>How QR-NexID works</h2>
+      </div>
+      <div class="timeline">
+        <article><span>01</span><h3>Create Your QR ID</h3><p>Register and create your QR-NexID account.</p></article>
+        <article><span>02</span><h3>Build Your Digital Profile</h3><p>Add your personal, professional and emergency information.</p></article>
+        <article><span>03</span><h3>Scan & Share</h3><p>Share your QR-NexID digitally or print it on a card/sticker.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="nexid-section security-section" id="security">
+    <div class="nexid-container security-grid">
+      <div class="security-visual brand-art-visual">
+        <img src="{{ url_for('static', filename='img/qr-nexid-hero-art.png') }}" alt="QR-NexID digital identity branding">
+      </div>
+      <div>
+        <div class="section-heading text-start">
+          <h2>Your identity. Your control.</h2>
+          <p>QR-NexID is designed to keep your important information organized, accessible and securely shareable.</p>
         </div>
-        <div class="border rounded p-3">
-          <div class="fw-semibold mb-1">Trusted Verification</div>
-          <div class="text-muted small">Keep your emergency and professional details ready.</div>
-        </div>
-        <div class="border rounded p-3">
-          <div class="fw-semibold mb-1">Easy Sharing</div>
-          <div class="text-muted small">Download, print, and share your QR card anytime.</div>
+        <div class="security-list">
+          <span><i class="bi bi-lock"></i> Secure Digital Profile</span>
+          <span><i class="bi bi-sliders"></i> Controlled Information Sharing</span>
+          <span><i class="bi bi-patch-check"></i> Verified Identity</span>
+          <span><i class="bi bi-qr-code"></i> QR-Based Access</span>
         </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
+
+  <section class="nexid-section" id="about">
+    <div class="nexid-container">
+      <div class="section-heading"><h2>Built for everyone</h2></div>
+      <div class="use-grid">
+        <article><i class="bi bi-mortarboard"></i><h3>Students</h3><p>Digital student identity, emergency information, academic details and resume/profile.</p></article>
+        <article><i class="bi bi-building-check"></i><h3>Employees</h3><p>Professional identity, company information, experience and emergency contact.</p></article>
+        <article><i class="bi bi-person-check"></i><h3>General Users</h3><p>Personal identity, emergency contact, vehicle information and important details.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="nexid-section card-preview-section">
+    <div class="nexid-container preview-grid">
+      <div class="identity-card large">
+        <div class="id-card-top"><img class="card-logo-img" src="{{ url_for('static', filename='img/qr-nexid-logo.png') }}" alt="QR-NexID - Scan Me, Know Me"><span class="secure-pill">Verified</span></div>
+        <div class="id-card-profile"><div class="avatar">ID</div><div><strong>Arya Mehta</strong><span>Digital ID</span></div></div>
+        <div class="qr-sample large-qr">{% for i in range(64) %}<span></span>{% endfor %}</div>
+        <div class="card-tagline">Scan Me, Know Me</div>
+      </div>
+      <div>
+        <div class="section-heading text-start">
+          <h2>Your identity in one smart QR</h2>
+          <p>Scan once. Access what matters.</p>
+        </div>
+        <a class="btn nexid-primary" href="{{ url_for('auth.register_select') }}">Create Your QR ID</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <div class="nexid-container">
+      <h2>Ready to create your QR-NexID?</h2>
+      <p>Build your digital identity today and keep your important information connected.</p>
+      <div class="hero-actions justify-content-center">
+        <a class="btn nexid-primary light" href="{{ url_for('auth.register_select') }}">Create QR ID</a>
+        <a class="btn nexid-secondary light" href="{{ url_for('auth.login') }}">Login</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="nexid-footer">
+    <div class="nexid-container footer-grid">
+      <div><img class="footer-logo-img" src="{{ url_for('static', filename='img/qr-nexid-logo.png') }}" alt="QR-NexID - Scan Me, Know Me"><p>Scan Me, Know Me</p><small>Powered by LifeShield</small></div>
+      <nav>
+        <a href="#home">Home</a><a href="#features">Features</a><a href="#security">Security</a><a href="#how-it-works">How It Works</a><a href="{{ url_for('auth.login') }}">Login</a><a href="{{ url_for('auth.register_select') }}">Create QR ID</a><a href="#">Privacy Policy</a><a href="#">Terms & Conditions</a><a href="#">Contact</a>
+      </nav>
+    </div>
+    <div class="nexid-container footer-bottom">© 2026 QR-NexID. All rights reserved.</div>
+  </footer>
+</main>
 {% endblock %}

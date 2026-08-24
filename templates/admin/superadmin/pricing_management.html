@@ -1,0 +1,47 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  .pricing-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .pricing-card { padding: 20px; border: 1px solid var(--border-color); border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+  .pricing-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; border-radius: 14px; background: #EFF6FF; color: var(--primary-color); font-size: 20px; }
+  .pricing-card h3 { margin: 0 0 8px; font-size: 18px; font-weight: 800; }
+  .pricing-card p { margin: 0 0 16px; color: var(--text-secondary); font-size: 14px; }
+  .price-input { position: relative; }
+  .price-input span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-weight: 800; }
+  .price-input input { padding-left: 34px; min-height: 48px; font-weight: 800; }
+  @media (max-width: 1200px) { .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 768px) { .pricing-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="enterprise-page">
+  <div class="enterprise-header">
+    <div>
+      <div class="enterprise-kicker">Payments</div>
+      <h1 class="enterprise-title">Pricing Management</h1>
+      <p class="enterprise-subtitle">Set registration fees used by the OTP and Razorpay payment gate.</p>
+    </div>
+  </div>
+
+  <form method="post">
+    <div class="pricing-grid">
+      {% for item in pricing %}
+      <div class="pricing-card">
+        <div class="pricing-icon"><i class="bi bi-currency-rupee"></i></div>
+        <h3>{{ item.label }}</h3>
+        <p>Registration Fee: ₹{{ '%.0f'|format(item.amount) }}</p>
+        <label class="form-label" for="amount_{{ item.user_type }}">Amount</label>
+        <div class="price-input">
+          <span>₹</span>
+          <input class="form-control" id="amount_{{ item.user_type }}" name="amount_{{ item.user_type }}" type="number" min="0" step="1" value="{{ '%.0f'|format(item.amount) }}" required>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-4 d-flex gap-2 justify-content-end">
+      <a class="btn enterprise-btn" href="{{ url_for('superadmin.settings') }}">Cancel</a>
+      <button class="btn enterprise-btn enterprise-btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Save Pricing</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

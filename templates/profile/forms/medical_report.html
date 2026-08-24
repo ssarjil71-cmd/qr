@@ -1,11 +1,120 @@
 {% if profile_type == 'student' %}
-<form method="post" action="{{ url_for('user.update_student_medical_report') }}" class="row g-3 mt-1">
+{% set yes_no = [('yes', 'Yes'), ('no', 'No')] %}
+<form method="post" action="{{ url_for('user.update_student_medical_report') }}" enctype="multipart/form-data" class="row g-3 mt-1 medical-report-form">
+  <div class="col-12"><h5 class="form-section-title">Basic Medical Details</h5></div>
+  <div class="col-md-4"><label class="form-label">Blood Group <span class="text-danger">*</span></label><input class="form-control" name="blood_group" value="{{ medical_report.get('blood_group') or user.blood_group or '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">Height (cm) <span class="text-danger">*</span></label><input type="number" step="0.01" min="1" class="form-control js-bmi-source" name="height" value="{{ medical_report.get('height') or '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">Weight (kg) <span class="text-danger">*</span></label><input type="number" step="0.01" min="1" class="form-control js-bmi-source" name="weight" value="{{ medical_report.get('weight') or '' }}" required></div>
+  <div class="col-md-4"><label class="form-label">BMI</label><input class="form-control js-bmi-value" value="{{ medical_report.get('bmi') or '' }}" readonly></div>
+  <div class="col-md-4"><label class="form-label">Blood Pressure</label><input class="form-control" name="blood_pressure" value="{{ medical_report.get('blood_pressure') or '' }}" placeholder="120/80 mmHg"></div>
+  <div class="col-md-4"><label class="form-label">Pulse Rate</label><input class="form-control" name="pulse_rate" value="{{ medical_report.get('pulse_rate') or '' }}" placeholder="72 bpm"></div>
+  <div class="col-md-4"><label class="form-label">SpO2</label><input class="form-control" name="spo2" value="{{ medical_report.get('spo2') or '' }}" placeholder="98%"></div>
+  <div class="col-md-4"><label class="form-label">Body Temperature</label><input class="form-control" name="body_temperature" value="{{ medical_report.get('body_temperature') or '' }}" placeholder="98.6 F"></div>
+  <div class="col-md-4"><label class="form-label">Last Health Checkup Date</label><input type="date" class="form-control" name="last_health_checkup_date" value="{{ medical_report.get('last_health_checkup_date') or '' }}"></div>
+
+  <div class="col-12"><h5 class="form-section-title">Allergies</h5></div>
   <div class="col-12">
-    <label class="form-label">Medical Report</label>
-    <textarea class="form-control" name="medical_notes" rows="5">{{ user.medical_notes or '' }}</textarea>
+    <label class="form-label d-block">Do you have any allergies? <span class="text-danger">*</span></label>
+    {% for value, label in yes_no %}
+    <div class="form-check form-check-inline"><input class="form-check-input js-toggle-radio" type="radio" name="has_allergies" value="{{ value }}" data-target=".js-allergy-fields" {% if medical_report.get('has_allergies') == value %}checked{% endif %} required><label class="form-check-label">{{ label }}</label></div>
+    {% endfor %}
   </div>
+  <div class="col-md-6 js-allergy-fields"><label class="form-label">Drug Allergies</label><input class="form-control" name="drug_allergies" value="{{ medical_report.get('drug_allergies') or '' }}"></div>
+  <div class="col-md-6 js-allergy-fields"><label class="form-label">Food Allergies</label><input class="form-control" name="food_allergies" value="{{ medical_report.get('food_allergies') or '' }}"></div>
+  <div class="col-md-6 js-allergy-fields"><label class="form-label">Other Allergies</label><input class="form-control" name="other_allergies" value="{{ medical_report.get('other_allergies') or '' }}"></div>
+  <div class="col-md-6 js-allergy-fields"><label class="form-label">Allergy Details</label><textarea class="form-control" name="allergy_details" rows="2">{{ medical_report.get('allergy_details') or '' }}</textarea></div>
+
+  <div class="col-12"><h5 class="form-section-title">Medical History</h5></div>
+  {% for field, label in [('diabetes', 'Diabetes'), ('hypertension', 'Hypertension'), ('heart_disease', 'Heart Disease'), ('asthma', 'Asthma'), ('epilepsy', 'Epilepsy'), ('kidney_disease', 'Kidney Disease')] %}
+  <div class="col-md-4">
+    <label class="form-label d-block">{{ label }} <span class="text-danger">*</span></label>
+    {% for value, option_label in yes_no %}
+    <div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="{{ field }}" value="{{ value }}" {% if medical_report.get(field) == value %}checked{% endif %} required><label class="form-check-label">{{ option_label }}</label></div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <div class="col-md-6"><label class="form-label">Other Medical Condition</label><input class="form-control" name="other_medical_condition" value="{{ medical_report.get('other_medical_condition') or '' }}"></div>
+  <div class="col-md-6">
+    <label class="form-label d-block">Previous Surgery <span class="text-danger">*</span></label>
+    {% for value, label in yes_no %}
+    <div class="form-check form-check-inline"><input class="form-check-input js-toggle-radio" type="radio" name="previous_surgery" value="{{ value }}" data-target=".js-surgery-fields" {% if medical_report.get('previous_surgery') == value %}checked{% endif %} required><label class="form-check-label">{{ label }}</label></div>
+    {% endfor %}
+  </div>
+  <div class="col-12 js-surgery-fields"><label class="form-label">Surgery Details</label><textarea class="form-control" name="surgery_details" rows="2">{{ medical_report.get('surgery_details') or '' }}</textarea></div>
+
+  <div class="col-12"><h5 class="form-section-title">Current Medication</h5></div>
   <div class="col-12">
-    <button class="btn btn-primary" type="submit">Save</button>
+    <label class="form-label d-block">Currently taking medicines? <span class="text-danger">*</span></label>
+    {% for value, label in yes_no %}
+    <div class="form-check form-check-inline"><input class="form-check-input js-toggle-radio" type="radio" name="currently_taking_medicines" value="{{ value }}" data-target=".js-medicine-area" {% if medical_report.get('currently_taking_medicines') == value %}checked{% endif %} required><label class="form-check-label">{{ label }}</label></div>
+    {% endfor %}
   </div>
+  <div class="col-12 js-medicine-area"><div id="medicineRows">
+    {% for medicine in medicines or [{}] %}
+    <div class="row g-2 medical-repeat-row mb-2">
+      <div class="col-md-3"><input class="form-control" name="medicine_name[]" value="{{ medicine.get('medicine_name', '') }}" placeholder="Medicine Name"></div>
+      <div class="col-md-3"><input class="form-control" name="dosage[]" value="{{ medicine.get('dosage', '') }}" placeholder="Dosage"></div>
+      <div class="col-md-3"><input class="form-control" name="frequency[]" value="{{ medicine.get('frequency', '') }}" placeholder="Frequency"></div>
+      <div class="col-md-3"><input class="form-control" name="purpose[]" value="{{ medicine.get('purpose', '') }}" placeholder="Purpose"></div>
+    </div>
+    {% endfor %}
+  </div><button class="btn btn-outline-primary btn-sm" type="button" data-add-row="medicineRows">+ Add Medicine</button></div>
+
+  <div class="col-12"><h5 class="form-section-title">Vaccination</h5></div>
+  <div class="col-md-6"><label class="form-label">Vaccination Status</label><input class="form-control" name="vaccination_status" value="{{ medical_report.get('vaccination_status') or '' }}"></div>
+  <div class="col-12"><div id="vaccinationRows">
+    {% for vaccination in vaccinations or [{}] %}
+    <div class="row g-2 medical-repeat-row mb-2">
+      <div class="col-md-3"><input class="form-control" name="vaccine_name[]" value="{{ vaccination.get('vaccine_name', '') }}" placeholder="Vaccine Name"></div>
+      <div class="col-md-3"><input class="form-control" name="dose[]" value="{{ vaccination.get('dose', '') }}" placeholder="Dose"></div>
+      <div class="col-md-3"><input type="date" class="form-control" name="vaccination_date[]" value="{{ vaccination.get('vaccination_date', '') }}"></div>
+      <div class="col-md-3"><input type="date" class="form-control" name="next_due_date[]" value="{{ vaccination.get('next_due_date', '') }}"></div>
+    </div>
+    {% endfor %}
+  </div><button class="btn btn-outline-primary btn-sm" type="button" data-add-row="vaccinationRows">+ Add Vaccination</button></div>
+
+  <div class="col-12"><h5 class="form-section-title">Medical Documents</h5></div>
+  <div class="col-12" id="documentRows">
+    <div class="row g-2 medical-repeat-row mb-2">
+      <div class="col-md-3"><input class="form-control" name="document_name[]" placeholder="Document Name"></div>
+      <div class="col-md-3"><select class="form-select" name="document_type[]"><option value="">Document Type</option><option value="blood_test_report">Blood Test Report</option><option value="x_ray">X-Ray</option><option value="ecg">ECG</option><option value="prescription">Prescription</option><option value="medical_certificate">Medical Certificate</option><option value="other_medical_report">Other Medical Report</option></select></div>
+      <div class="col-md-2"><input type="date" class="form-control" name="document_date[]"></div>
+      <div class="col-md-2"><input class="form-control" name="description[]" placeholder="Description"></div>
+      <div class="col-md-2"><input type="file" class="form-control" name="medical_file[]"></div>
+    </div>
+  </div>
+  <div class="col-12"><button class="btn btn-outline-primary btn-sm" type="button" data-add-row="documentRows">+ Add Medical Document</button></div>
+
+  <div class="col-12"><button class="btn btn-primary" type="submit">Save/Update</button></div>
 </form>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.medical-report-form');
+    if (!form) return;
+    const syncBmi = () => {
+      const height = parseFloat(form.querySelector('[name="height"]').value || 0) / 100;
+      const weight = parseFloat(form.querySelector('[name="weight"]').value || 0);
+      form.querySelector('.js-bmi-value').value = height > 0 && weight > 0 ? (weight / (height * height)).toFixed(2) : '';
+    };
+    const syncToggles = () => {
+      form.querySelectorAll('.js-toggle-radio:checked').forEach((radio) => {
+        const show = radio.value === 'yes';
+        form.querySelectorAll(radio.dataset.target).forEach((field) => {
+          field.classList.toggle('d-none', !show);
+          field.querySelectorAll('input, textarea, select').forEach((input) => input.disabled = !show);
+        });
+      });
+    };
+    form.querySelectorAll('.js-bmi-source').forEach((input) => input.addEventListener('input', syncBmi));
+    form.querySelectorAll('.js-toggle-radio').forEach((input) => input.addEventListener('change', syncToggles));
+    form.querySelectorAll('[data-add-row]').forEach((button) => button.addEventListener('click', () => {
+      const target = document.getElementById(button.dataset.addRow);
+      const row = target.querySelector('.medical-repeat-row').cloneNode(true);
+      row.querySelectorAll('input, textarea, select').forEach((input) => input.value = '');
+      target.appendChild(row);
+    }));
+    syncBmi();
+    syncToggles();
+  });
+</script>
 {% endif %}
