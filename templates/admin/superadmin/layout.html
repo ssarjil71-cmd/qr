@@ -72,11 +72,16 @@
 
   .content {
     flex-grow: 1;
+    min-width: 0;
+    max-width: 100%;
     padding-left: calc(var(--sidebar-width-desktop) + 32px);
     transition: padding-left 0.25s ease-in-out;
   }
 
   .content-inner {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 24px;
   }
   
@@ -419,6 +424,7 @@
       padding-left: 0;
     }
     .content-inner {
+      min-width: 0;
       padding: 16px;
     }
     .sidebar-toggle {
@@ -477,6 +483,9 @@
         </a>
         <a class="sidebar-link {% if request.endpoint == 'superadmin.pricing_management' %}active{% endif %}" href="{{ url_for('superadmin.pricing_management') }}">
           <i class="bi bi-currency-rupee"></i><span class="link-text">Pricing Management</span>
+        </a>
+        <a class="sidebar-link {% if request.endpoint in ['superadmin.transactions', 'superadmin.transaction_details', 'superadmin.export_transactions'] %}active{% endif %}" href="{{ url_for('superadmin.transactions') }}">
+          <i class="bi bi-cash-stack"></i><span class="link-text">Transactions</span>
         </a>
         <a class="sidebar-link disabled-link" href="#"><i class="bi bi-diagram-3"></i><span class="link-text">Branches</span></a>
         <a class="sidebar-link disabled-link" href="#"><i class="bi bi-diagram-2"></i><span class="link-text">Departments</span></a>

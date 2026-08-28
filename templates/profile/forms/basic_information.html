@@ -30,14 +30,14 @@
       <option value="{{ nat }}" {% if (user.nationality or '') == nat %}selected{% endif %}>{{ nat }}</option>
       {% endfor %}
     </select>
-  </div>
+  </div> -->
   <div class="col-md-6">
     <label class="form-label">State</label>
     <select class="form-select" name="state_id" id="state_select" data-user-state="{{ user.state or '' }}">
       <option value="">Loading states...</option>
     </select>
   </div>
-  <div class="col-md-6">
+ <div class="col-md-6">
     <label class="form-label">District</label>
     <select class="form-select" id="district_select" name="district_id"></select>
   </div>

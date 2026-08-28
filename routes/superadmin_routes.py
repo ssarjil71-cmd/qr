@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, Response
+import json
+from datetime import datetime
 from services.db import get_conn
 from werkzeug.security import check_password_hash
 from models.organization import OrganizationModel
@@ -65,15 +67,15 @@ def dashboard():
     card_stats = CardPermissionModel.get_dashboard_stats()
     stats.update(card_stats)
     recent_activity = OrganizationModel.get_recent_activity()
-    latest_users = OrganizationModel.get_latest_users()
     latest_organizations = OrganizationModel.get_latest_organizations()
     qr_scan_stats = OrganizationModel.get_qr_scan_statistics()
     return render_template(
         'admin/superadmin/dashboard.html',
         recent_activity=recent_activity,
-        latest_users=latest_users,
         latest_organizations=latest_organizations,
         qr_scan_stats=qr_scan_stats,
+        PaymentStatusEnum=RegistrationPaymentModel.PaymentStatus,
+        RegistrationStatusEnum=RegistrationPaymentModel.RegistrationStatus,
         **stats,
     )
 
@@ -416,3 +418,89 @@ def division_create(department_id):
         return redirect(url_for('superadmin.organization_view', org_id=org_id))
     cur.close()
     return render_template('admin/superadmin/division_form.html', department_id=department_id)
+
+
+@superadmin_bp.route('/transactions')
+@admin_login_required
+def transactions():
+    page = request.args.get('page', default=1, type=int)
+    per_page = 10
+    search_query = request.args.get('q', '').strip()
+    payment_status_filter = request.args.get('payment_status', 'All')
+    registration_status_filter = request.args.get('registration_status', 'All')
+    user_type_filter = request.args.get('user_type', 'All')
+    date_range_filter = request.args.get('date_range', 'All')
+    sort_by = request.args.get('sort_by', 'latest_payment')
+    sort_order = request.args.get('sort_order', 'desc')
+
+    filters = {
+        'search_query': search_query,
+        'payment_status': payment_status_filter,
+        'registration_status': registration_status_filter,
+        'user_type': user_type_filter,
+        'date_range': date_range_filter,
+    }
+    
+    summary = RegistrationPaymentModel.get_transactions_summary()
+    pagination = RegistrationPaymentModel.list_transactions_paginated(
+        page=page, per_page=per_page, filters=filters, sort_by=sort_by, sort_order=sort_order
+    )
+
+    # Get unique user types for filter dropdown
+    user_types = RegistrationPaymentModel.get_all_user_types()
+
+    return render_template(
+        'transactions.html',
+        summary=summary,
+        transactions=pagination['items'],
+        pagination=pagination,
+        filters=filters,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        user_types=user_types,
+        PaymentStatusEnum=RegistrationPaymentModel.PaymentStatus,
+        RegistrationStatusEnum=RegistrationPaymentModel.RegistrationStatus,
+    )
+
+
+@superadmin_bp.route('/transactions/<int:transaction_id>')
+@admin_login_required
+def transaction_details(transaction_id):
+    transaction = RegistrationPaymentModel.get_transaction_details(transaction_id)
+    if not transaction:
+        flash('Transaction not found', 'warning')
+        return redirect(url_for('superadmin.transactions'))
+    return render_template(
+        'transaction_details_modal.html', 
+        transaction=transaction, 
+        PaymentStatusEnum=RegistrationPaymentModel.PaymentStatus,
+        RegistrationStatusEnum=RegistrationPaymentModel.RegistrationStatus,
+    )
+
+@superadmin_bp.route('/transactions/export')
+@admin_login_required
+def export_transactions():
+    search_query = request.args.get('q', '').strip()
+    payment_status_filter = request.args.get('payment_status', 'All')
+    registration_status_filter = request.args.get('registration_status', 'All')
+    user_type_filter = request.args.get('user_type', 'All')
+    date_range_filter = request.args.get('date_range', 'All')
+    sort_by = request.args.get('sort_by', 'latest_payment')
+    sort_order = request.args.get('sort_order', 'desc')
+
+    filters = {
+        'search_query': search_query,
+        'payment_status': payment_status_filter,
+        'registration_status': registration_status_filter,
+        'user_type': user_type_filter,
+        'date_range': date_range_filter,
+    }
+
+    csv_buffer = RegistrationPaymentModel.export_transactions_to_csv(filters, sort_by, sort_order)
+
+    response = Response(
+        csv_buffer.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment;filename=transactions.csv'},
+    )
+    return response
