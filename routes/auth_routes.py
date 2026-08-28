@@ -8,7 +8,7 @@ from models.employee_profile import EmployeeProfileModel
 from services.db import get_db
 from services.profile_engine import ProfileEngine
 from services.qrcode_service import generate_qr_for_user, render_premium_card
-from services.registration_gateways import GatewayError, MSG91Gateway, RazorpayGateway
+from services.registration_gateways import GatewayError, MSG91Gateway, RazorpayGateway, normalize_mobile
 from models.card_permission import CardPermissionModel
 from models.qr_identity import QRIdentityModel
 import os
@@ -171,17 +171,24 @@ def registration_mobile():
             flash('Mobile number is required', 'warning')
             return redirect(url_for('auth.registration_mobile'))
         try:
+            mobile = normalize_mobile(mobile)
             otp_response = MSG91Gateway.send_otp(mobile)
         except GatewayError as exc:
-            flash(f'Could not send OTP: {exc}', 'danger')
-            return redirect(url_for('auth.registration_mobile'))
+            return render_template(
+                'auth/register_mobile.html',
+                user_type=user_type,
+                user_label=RegistrationPaymentModel.LABELS[user_type],
+                amount=amount,
+                status='Mobile Number',
+                error_message=str(exc),
+            )
         RegistrationPaymentModel.create_attempt(token, user_type, mobile, amount)
         RegistrationPaymentModel.update_attempt(
             token,
             otp_status='sent',
             surepass_client_id=otp_response.get('request_id'),
             status='otp_sent',
-            metadata={'otp_sent': True, 'provider': 'msg91', 'temporary_test_otp': True},
+            metadata={'otp_sent': True, 'provider': 'msg91'},
         )
         flash('OTP sent successfully', 'success')
         return redirect(url_for('auth.registration_verify_otp'))
@@ -209,8 +216,12 @@ def registration_verify_otp():
             MSG91Gateway.verify_otp(attempt.get('mobile'), otp)
         except GatewayError as exc:
             RegistrationPaymentModel.update_attempt(token, otp_status='failed', status='otp_failed')
-            flash(f'OTP verification failed: {exc}', 'danger')
-            return redirect(url_for('auth.registration_verify_otp'))
+            return render_template(
+                'auth/register_verify_payment_otp.html',
+                attempt=attempt,
+                user_label=RegistrationPaymentModel.LABELS[attempt['user_type']],
+                error_message=str(exc),
+            )
         RegistrationPaymentModel.update_attempt(token, otp_status='verified', status='otp_verified')
         flash('OTP verified successfully', 'success')
         return redirect(url_for('auth.registration_payment'))
@@ -233,14 +244,18 @@ def registration_resend_otp():
     try:
         otp_response = MSG91Gateway.resend_otp(attempt['mobile'])
     except GatewayError as exc:
-        flash(f'Could not resend OTP: {exc}', 'danger')
-        return redirect(url_for('auth.registration_verify_otp'))
+        return render_template(
+            'auth/register_verify_payment_otp.html',
+            attempt=attempt,
+            user_label=RegistrationPaymentModel.LABELS[attempt['user_type']],
+            error_message=str(exc),
+        )
     RegistrationPaymentModel.update_attempt(
         token,
         otp_status='sent',
         surepass_client_id=otp_response.get('request_id'),
         status='otp_sent',
-        metadata={'otp_resent': True, 'provider': 'msg91', 'temporary_test_otp': True},
+        metadata={'otp_resent': True, 'provider': 'msg91'},
     )
     flash('OTP resent successfully', 'success')
     return redirect(url_for('auth.registration_verify_otp'))
@@ -567,8 +582,7 @@ def _public_registration_handler(user_type, card_user_type=None):
 def verify_otp():
     if request.method == 'POST':
         entered_otp = (request.form.get('otp') or '').strip()
-        # Accept either the generated/session OTP or the temporary testing OTP '11111'
-        if entered_otp == session.get('registration_otp') or entered_otp == '11111':
+        if entered_otp == session.get('registration_otp'):
             user_id = session.get('registration_user_id')
             if user_id:
                 from services.db import get_conn
