@@ -126,7 +126,13 @@
                 <div class="row g-4">
                   <div class="col-md-6" id="profile-photo">
                     <label class="form-label">Profile Photo</label>
-                    <input class="form-control" type="file" name="profile_photo" accept=".jpg,.jpeg,.png,.webp">
+                    <div class="profile-photo-picker" id="profilePhotoTrigger" role="button" tabindex="0" aria-label="Choose profile photo source">
+                      <div class="profile-photo-icon"><i class="bi bi-camera-fill"></i></div>
+                      <div class="profile-photo-title">Choose Photo</div>
+                      <div class="profile-photo-subtitle">Camera or device upload</div>
+                      <div class="profile-photo-file-name" id="profilePhotoName">No file selected</div>
+                    </div>
+                    <input id="profilePhotoInput" class="d-none" type="file" name="profile_photo" accept=".jpg,.jpeg,.png,.webp,image/*">
                     <div class="form-text">JPG, PNG, WEBP only · Max 2 MB</div>
                   </div>
                   <div class="col-md-6">
@@ -152,4 +158,282 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="profilePhotoSourceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 shadow-sm">
+      <div class="modal-header border-0 pb-2">
+        <h5 class="modal-title fw-bold">Profile Photo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0" id="photoSourceModalBody"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .profile-photo-picker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    padding: 1.2rem 1rem;
+    border: 1.5px dashed rgba(13, 110, 253, 0.35);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(13, 110, 253, 0.04), rgba(13, 110, 253, 0.02));
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+  }
+
+  .profile-photo-picker:focus-visible {
+    outline: 3px solid rgba(13, 110, 253, 0.25);
+    outline-offset: 2px;
+  }
+
+  .profile-photo-picker:hover {
+    transform: translateY(-1px);
+    border-color: rgba(13, 110, 253, 0.6);
+    box-shadow: 0 0.5rem 1.25rem rgba(13, 110, 253, 0.08);
+  }
+
+  .profile-photo-icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(13, 110, 253, 0.08);
+    color: #0d6efd;
+    font-size: 1.35rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .profile-photo-title {
+    font-weight: 700;
+    color: #1d1d1f;
+  }
+
+  .profile-photo-subtitle {
+    font-size: 0.82rem;
+    color: #6c757d;
+    margin-top: 0.15rem;
+  }
+
+  .profile-photo-file-name {
+    margin-top: 0.8rem;
+    font-size: 0.78rem;
+    color: #0d6efd;
+    word-break: break-word;
+  }
+
+  .photo-camera-panel {
+    padding: 0.75rem;
+  }
+
+  .photo-camera-view {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 0.8rem;
+    background: #111827;
+    margin-bottom: 0.75rem;
+  }
+
+  .photo-camera-view video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .photo-camera-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .photo-camera-actions .btn {
+    flex: 1 1 0;
+    min-width: 110px;
+  }
+
+  .photo-camera-error {
+    color: #b42318;
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+  }
+
+  @media (max-width: 576px) {
+    .profile-photo-picker {
+      min-height: 130px;
+    }
+
+    .photo-camera-actions {
+      flex-direction: column;
+    }
+
+    .photo-camera-actions .btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  const profilePhotoTrigger = document.getElementById('profilePhotoTrigger');
+  const profilePhotoInput = document.getElementById('profilePhotoInput');
+  const profilePhotoName = document.getElementById('profilePhotoName');
+  const photoSourceModal = document.getElementById('profilePhotoSourceModal');
+  const photoSourceModalBody = document.getElementById('photoSourceModalBody');
+  const photoSourceModalInstance = new bootstrap.Modal(photoSourceModal);
+
+  const isMobileDevice = () => {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+  };
+
+  const setSelectedFile = (file) => {
+    if (!file || !profilePhotoInput) return;
+
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    profilePhotoInput.files = dataTransfer.files;
+    profilePhotoName.textContent = file.name;
+  };
+
+  const openFilePicker = () => {
+    if (!profilePhotoInput) return;
+    profilePhotoInput.value = '';
+    profilePhotoInput.removeAttribute('capture');
+    profilePhotoInput.click();
+  };
+
+  const openCameraCapture = async () => {
+    if (!photoSourceModalBody) return openFilePicker();
+
+    let stream = null;
+    photoSourceModalBody.innerHTML = `
+      <div class="photo-camera-panel">
+        <div class="photo-camera-view">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+        </div>
+        <div class="photo-camera-actions">
+          <button type="button" class="btn btn-primary" id="captureCameraPhotoBtn">Capture</button>
+          <button type="button" class="btn btn-outline-secondary" id="retakeCameraPhotoBtn">Retake</button>
+          <button type="button" class="btn btn-success" id="useCameraPhotoBtn">Use Photo</button>
+        </div>
+        <div class="photo-camera-error d-none" id="cameraErrorMessage"></div>
+      </div>
+    `;
+
+    photoSourceModalInstance.show();
+
+    const cameraVideo = document.getElementById('cameraVideo');
+    const cameraErrorMessage = document.getElementById('cameraErrorMessage');
+    const captureCameraPhotoBtn = document.getElementById('captureCameraPhotoBtn');
+    const retakeCameraPhotoBtn = document.getElementById('retakeCameraPhotoBtn');
+    const useCameraPhotoBtn = document.getElementById('useCameraPhotoBtn');
+
+    const stopStream = () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+      }
+    };
+
+    const startCamera = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Camera unavailable');
+        }
+
+        const constraints = {
+          video: {
+            facingMode: { ideal: 'environment' }
+          },
+          audio: false,
+        };
+
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        cameraVideo.srcObject = stream;
+        cameraErrorMessage.classList.add('d-none');
+      } catch (error) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+            audio: false,
+          });
+          cameraVideo.srcObject = stream;
+          cameraErrorMessage.classList.add('d-none');
+        } catch (fallbackError) {
+          cameraErrorMessage.textContent = 'Camera permission was not granted. Please use the gallery option instead.';
+          cameraErrorMessage.classList.remove('d-none');
+        }
+      }
+    };
+
+    const captureImage = () => {
+      if (!cameraVideo || !cameraVideo.videoWidth) {
+        cameraErrorMessage.textContent = 'Camera is not ready yet. Please try again.';
+        cameraErrorMessage.classList.remove('d-none');
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = cameraVideo.videoWidth;
+      canvas.height = cameraVideo.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const file = new File([blob], `profile-photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setSelectedFile(file);
+      }, 'image/jpeg', 0.92);
+    };
+
+    captureCameraPhotoBtn.addEventListener('click', captureImage);
+    retakeCameraPhotoBtn.addEventListener('click', async () => {
+      stopStream();
+      await startCamera();
+    });
+    useCameraPhotoBtn.addEventListener('click', () => {
+      stopStream();
+      photoSourceModalInstance.hide();
+    });
+
+    await startCamera();
+  };
+
+  if (profilePhotoTrigger) {
+    profilePhotoTrigger.addEventListener('click', async () => {
+      if (isMobileDevice()) {
+        await openCameraCapture();
+      } else {
+        openFilePicker();
+      }
+    });
+
+    profilePhotoTrigger.addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (isMobileDevice()) {
+          await openCameraCapture();
+        } else {
+          openFilePicker();
+        }
+      }
+    });
+  }
+
+  if (profilePhotoInput) {
+    profilePhotoInput.addEventListener('change', () => {
+      if (profilePhotoInput.files && profilePhotoInput.files.length > 0) {
+        profilePhotoName.textContent = profilePhotoInput.files[0].name;
+      } else {
+        profilePhotoName.textContent = 'No file selected';
+      }
+    });
+  }
+</script>
 {% endblock %}
