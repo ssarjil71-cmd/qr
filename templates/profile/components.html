@@ -1,38 +1,46 @@
 {% macro profile_header(profile_dashboard_title, profile_dashboard_description, user, overall_completion) %}
-<div class="profile-mobile-shell">
-<div class="profile-page-head d-flex justify-content-between align-items-start mb-3">
-  <button class="mobile-menu-btn" type="button" aria-label="Menu">Menu</button>
-  <div>
-    <div class="profile-kicker mb-2">Welcome back, {{ user.name or 'User' }}</div>
-    <h3 class="profile-title mb-1">Dashboard</h3>
-    <p class="profile-subtitle mb-0">Track and complete your profile sections.</p>
-  </div>
-  <a class="profile-bell-btn" href="{{ url_for('auth.logout') }}" aria-label="Logout">Logout</a>
-</div>
+<div class="profile-dashboard-shell">
+  <aside class="profile-dashboard-sidebar" id="profile-dashboard-sidebar" aria-label="Dashboard menu">
+    <div class="profile-dashboard-sidebar-header">Menu</div>
+    <nav class="profile-dashboard-sidebar-nav" aria-label="Dashboard navigation">
+      <a href="{{ url_for('auth.dashboard') }}" class="{% if request.endpoint == 'auth.dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('auth.qr_view') }}">View QR</a>
+      <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </nav>
+  </aside>
 
-<div class="card profile-summary-card mb-4">
-  <div class="card-body">
-    <div class="row align-items-center g-3">
-      <div class="col-md-2">
-        {% if user.photo %}
-        <img src="{{ url_for('user.uploads', filename=user.photo.replace('static/uploads/', '')) }}" alt="Photo" class="profile-avatar">
-        {% else %}
-        <div class="profile-avatar profile-avatar-empty">{{ (user.name or 'U')[:1] }}</div>
-        {% endif %}
-      </div>
-      <div class="col-md-7">
-        <h4 class="profile-name mb-1">{{ user.name }}</h4>
-        <div class="profile-contact">{{ user.email or '-' }}</div>
-        <div class="profile-contact">{{ user.mobile or '-' }}</div>
-        <div class="profile-status mt-2">QR Status: {{ 'Generated' if user.qr_token else 'Pending' }}</div>
-      </div>
-      <div class="col-md-3">
-        <div class="completion-panel">
-          <div class="small text-muted mb-1">Overall Profile Completion</div>
-          <div class="completion-value">{{ overall_completion }}%</div>
+  <div class="profile-dashboard-main">
+    <div class="card profile-summary-card mb-4">
+      <div class="card-body">
+        <div class="profile-summary-header">
+          <button class="profile-dashboard-menu-toggle" type="button" aria-label="Toggle dashboard menu" aria-controls="profile-dashboard-sidebar" data-profile-menu-toggle>
+            <i class="bi bi-list"></i>
+            <span>Menu</span>
+          </button>
         </div>
-        <div class="progress mt-2 profile-progress">
-          <div class="progress-bar" role="progressbar" style="width: {{ overall_completion }}%"></div>
+        <div class="row align-items-center g-3">
+          <div class="col-md-2">
+            {% if user.photo %}
+            <img src="{{ url_for('user.uploads', filename=user.photo.replace('static/uploads/', '')) }}" alt="Photo" class="profile-avatar">
+            {% else %}
+            <div class="profile-avatar profile-avatar-empty">{{ (user.name or 'U')[:1] }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-7">
+            <h4 class="profile-name mb-1">{{ user.name }}</h4>
+            <div class="profile-contact">{{ user.email or '-' }}</div>
+            <div class="profile-contact">{{ user.mobile or '-' }}</div>
+            <div class="profile-status mt-2">QR Status: {{ 'Generated' if user.qr_token else 'Pending' }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="completion-panel">
+              <div class="small text-muted mb-1">Overall Profile Completion</div>
+              <div class="completion-value">{{ overall_completion }}%</div>
+            </div>
+            <div class="progress mt-2 profile-progress">
+              <div class="progress-bar" role="progressbar" style="width: {{ overall_completion }}%"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -43,7 +51,7 @@
 {% macro section_card(section, profile_type, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None) %}
 <div class="col-12 col-sm-6 col-xl-4">
   <div class="summary-card-wrap">
-    <a class="summary-section-card profile-section-{{ section.key }}" href="{{ url_for('employee.employee_section_detail', section_key=section.key) if profile_type == 'employee' else url_for('user.student_section_detail', section_key=section.key) }}">
+    <a class="summary-section-card profile-section-{{ section.key }} {% if section.public_visible %}is-visible{% else %}is-hidden{% endif %}" href="{{ url_for('employee.employee_section_detail', section_key=section.key) if profile_type == 'employee' else url_for('user.student_section_detail', section_key=section.key) }}">
       <span class="summary-section-title">{{ section.title }}</span>
       <span class="summary-section-value">
         {% if section.key == 'projects' %}{{ projects|length }}{% elif section.key == 'certificates' %}{{ certificates|length }}{% elif section.key == 'upload_documents' %}{{ uploaded_documents|length }}{% elif section.key == 'social_links' %}{{ social_links|length }}{% elif section.key == 'work_experience' %}{{ experiences|length }}{% else %}{{ section.completion }}%{% if section.completion == 100 %} ✓{% endif %}{% endif %}
@@ -52,8 +60,14 @@
     </a>
     {% if profile_type == 'student' %}
     <form method="post" action="{{ url_for('user.update_student_section_visibility', section_key=section.key) }}" class="summary-visibility-form">
-      <input type="hidden" name="is_visible" value="0">
-      <input class="form-check-input js-section-visibility" type="checkbox" name="is_visible" value="1" title="Show on QR scan" aria-label="Show {{ section.title }} on QR scan" {% if section.public_visible %}checked{% endif %}>
+      <div class="summary-visibility-status {% if section.public_visible %}is-visible{% else %}is-hidden{% endif %}">
+        <i class="bi {% if section.public_visible %}bi-eye-fill{% else %}bi-eye-slash-fill{% endif %} summary-visibility-icon" aria-hidden="true"></i>
+        <span class="summary-visibility-text">{{ 'Visible on QR' if section.public_visible else 'Hidden from QR' }}</span>
+      </div>
+      <label class="summary-visibility-toggle" aria-label="Toggle QR visibility for {{ section.title }}">
+        <input class="js-section-visibility" type="checkbox" name="is_visible" value="1" aria-label="Show {{ section.title }} on QR scan" {% if section.public_visible %}checked{% endif %}>
+        <span class="summary-visibility-slider"></span>
+      </label>
     </form>
     {% endif %}
   </div>
@@ -65,13 +79,8 @@
   <div class="detail-row"><span>Name</span><strong>{{ user.name or '-' }}</strong></div>
   <div class="detail-row"><span>Mobile</span><strong>{{ user.mobile or '-' }}</strong></div>
   <div class="detail-row"><span>Email</span><strong>{{ user.email or '-' }}</strong></div>
-  <div class="detail-row"><span>Date of Birth</span><strong>{{ user.dob or '-' }}</strong></div>
   <div class="detail-row"><span>Gender</span><strong>{{ user.gender or '-' }}</strong></div>
   <div class="detail-row"><span>Blood Group</span><strong>{{ user.blood_group or '-' }}</strong></div>
-  <div class="detail-row"><span>Nationality</span><strong>{{ user.nationality or '-' }}</strong></div>
-  <div class="detail-row"><span>City</span><strong>{{ user.city or '-' }}</strong></div>
-  <div class="detail-row"><span>State</span><strong>{{ user.state or '-' }}</strong></div>
-  <div class="detail-row"><span>PIN Code</span><strong>{{ user.pin_code or '-' }}</strong></div>
   <div class="detail-row detail-row-block"><span>Address</span><strong>{{ user.address or '-' }}</strong></div>
 {% elif section.key == 'academic_information' %}
   <div class="detail-row"><span>College</span><strong>{{ student_profile.get('college', '-') or '-' }}</strong></div>
@@ -305,15 +314,71 @@
 {% endmacro %}
 
 {% macro section_visibility_script() %}
-<a class="profile-fab" href="{{ url_for('auth.complete_profile') }}" aria-label="Complete Profile">+</a>
 <script>
+  const dashboardSidebar = document.getElementById('profile-dashboard-sidebar');
+  const dashboardMenuToggle = document.querySelector('[data-profile-menu-toggle]');
+
+  if (dashboardSidebar && dashboardMenuToggle) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'profile-dashboard-backdrop';
+    document.body.appendChild(backdrop);
+
+    const closeSidebar = () => {
+      dashboardSidebar.classList.remove('is-open');
+      backdrop.classList.remove('is-visible');
+    };
+
+    dashboardMenuToggle.addEventListener('click', () => {
+      const isOpen = dashboardSidebar.classList.toggle('is-open');
+      backdrop.classList.toggle('is-visible', isOpen);
+    });
+
+    backdrop.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeSidebar();
+      }
+    });
+  }
+
+  function setSectionCardVisibility(checkbox, isVisible) {
+    const form = checkbox.form;
+    const card = form && form.closest('.summary-card-wrap') ? form.closest('.summary-card-wrap').querySelector('.summary-section-card') : null;
+    const status = form ? form.querySelector('.summary-visibility-status') : null;
+    const statusText = form ? form.querySelector('.summary-visibility-text') : null;
+    const icon = form ? form.querySelector('.summary-visibility-icon') : null;
+
+    if (card) {
+      card.classList.toggle('is-visible', isVisible);
+      card.classList.toggle('is-hidden', !isVisible);
+    }
+
+    if (status) {
+      status.classList.toggle('is-visible', isVisible);
+      status.classList.toggle('is-hidden', !isVisible);
+    }
+
+    if (statusText) {
+      statusText.textContent = isVisible ? 'Visible on QR' : 'Hidden from QR';
+    }
+
+    if (icon) {
+      icon.classList.toggle('bi-eye-fill', isVisible);
+      icon.classList.toggle('bi-eye-slash-fill', !isVisible);
+    }
+  }
+
   document.querySelectorAll('.js-section-visibility').forEach((checkbox) => {
+    setSectionCardVisibility(checkbox, checkbox.checked);
+
     checkbox.addEventListener('click', (event) => {
       event.stopPropagation();
     });
+
     checkbox.addEventListener('change', async () => {
       const form = checkbox.form;
       const previous = !checkbox.checked;
+      setSectionCardVisibility(checkbox, checkbox.checked);
       checkbox.disabled = true;
       try {
         const body = new FormData(form);
@@ -325,9 +390,11 @@
         });
         if (!response.ok) {
           checkbox.checked = previous;
+          setSectionCardVisibility(checkbox, checkbox.checked);
         }
       } catch (error) {
         checkbox.checked = previous;
+        setSectionCardVisibility(checkbox, checkbox.checked);
       } finally {
         checkbox.disabled = false;
       }

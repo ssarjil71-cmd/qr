@@ -15,32 +15,45 @@
     </div>
   </div>
 
-  <div class="section-detail-panel">
-    <div class="section-detail-content">
+  <div class="section-detail-panel" data-inline-section="{{ section.key }}">
+    <div class="section-detail-content" id="section_readonly_{{ section.key }}">
       {{ detail_rows(section, user, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, social_links=social_links, experiences=experiences, medical_report=medical_report, medicines=medicines, vaccinations=vaccinations, medical_documents=medical_documents, technical_skills=technical_skills, soft_skills=soft_skills, skill_tools=skill_tools, languages=languages) }}
     </div>
-    <button class="section-detail-edit-btn" type="button" data-bs-toggle="collapse" data-bs-target="#section_edit_form_{{ section.key }}" aria-expanded="false" aria-controls="section_edit_form_{{ section.key }}">
+    <div class="section-edit-panel d-none" id="section_edit_form_{{ section.key }}">
+      {% include section.form_template %}
+      <div class="section-inline-cancel-row">
+        <button class="btn btn-outline-secondary" type="button" data-inline-cancel>Cancel</button>
+      </div>
+    </div>
+    <button class="section-detail-edit-btn" type="button" data-inline-edit aria-expanded="false" aria-controls="section_edit_form_{{ section.key }}">
       Edit
     </button>
   </div>
-
-  <div class="collapse mt-3" id="section_edit_form_{{ section.key }}">
-    <div class="section-edit-panel">
-      {% include section.form_template %}
-    </div>
-  </div>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      var collapseEl = document.getElementById('section_edit_form_{{ section.key }}');
-      var detailEl = document.querySelector('.section-detail-content');
-      if (collapseEl && detailEl) {
-        collapseEl.addEventListener('show.bs.collapse', function() {
-          detailEl.classList.add('d-none');
-        });
-        collapseEl.addEventListener('hide.bs.collapse', function() {
-          detailEl.classList.remove('d-none');
-        });
+      var sectionEl = document.querySelector('[data-inline-section="{{ section.key }}"]');
+      if (!sectionEl) return;
+      var readOnlyEl = sectionEl.querySelector('#section_readonly_{{ section.key }}');
+      var editEl = sectionEl.querySelector('#section_edit_form_{{ section.key }}');
+      var editButton = sectionEl.querySelector('[data-inline-edit]');
+      var cancelButton = sectionEl.querySelector('[data-inline-cancel]');
+
+      function setEditMode(isEditing) {
+        readOnlyEl.classList.toggle('d-none', isEditing);
+        editEl.classList.toggle('d-none', !isEditing);
+        editButton.classList.toggle('d-none', isEditing);
+        editButton.setAttribute('aria-expanded', isEditing ? 'true' : 'false');
       }
+
+      editButton.addEventListener('click', function() {
+        setEditMode(true);
+      });
+      cancelButton.addEventListener('click', function() {
+        sectionEl.querySelectorAll('form').forEach(function(form) {
+          form.reset();
+        });
+        setEditMode(false);
+      });
     });
   </script>
 </div>

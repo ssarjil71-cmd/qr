@@ -6,7 +6,7 @@
   <div class="col-12"><label class="form-label">Technologies</label><textarea class="form-control" name="technologies" rows="2"></textarea></div>
   <div class="col-12"><label class="form-label">Project URL</label><input class="form-control" name="project_url"></div>
   <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
-  <div class="col-12"><button class="btn btn-primary" type="submit">Add Project</button></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
 </form>
 
 {% for project in projects %}
@@ -19,7 +19,7 @@
   <div class="col-12"><label class="form-label">Project URL</label><input class="form-control" name="project_url" value="{{ project.project_url or '' }}"></div>
   <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ project.description or '' }}</textarea></div>
   <div class="col-12 d-flex gap-2">
-    <button class="btn btn-primary" type="submit">Update</button>
+    <button class="btn btn-primary" type="submit">Save</button>
   </div>
 </form>
 <form method="post" action="{{ url_for('employee.delete_employee_project', project_id=project.id) if profile_type == 'employee' else url_for('user.delete_student_project', project_id=project.id) }}" class="mb-3">

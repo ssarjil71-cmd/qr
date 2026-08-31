@@ -392,6 +392,8 @@ class StudentProfileModel:
             'state': row[38] if len(row) > 38 else None,
             'pin_code': row[39] if len(row) > 39 else None,
             'nationality': row[40] if len(row) > 40 else None,
+            'district_id': row[41] if len(row) > 41 else None,
+            'taluka_id': row[42] if len(row) > 42 else None,
         }
 
     @classmethod
@@ -904,14 +906,9 @@ class StudentProfileModel:
                 user['name'],
                 user['mobile'],
                 user['email'],
-                user['dob'],
                 user['gender'],
                 user['blood_group'],
                 user['address'],
-                user['city'],
-                user['state'],
-                user['pin_code'],
-                user['nationality'],
                 user['photo'],
             ]
         )
@@ -1143,16 +1140,9 @@ class StudentProfileModel:
                 SET name=%s,
                     mobile=%s,
                     email=%s,
-                    dob=%s,
                     gender=%s,
                     blood_group=%s,
                     address=%s,
-                    city=%s,
-                    state=%s,
-                    pin_code=%s,
-                    district_id=%s,
-                    taluka_id=%s,
-                    nationality=%s,
                     photo=%s
                 WHERE id=%s
                 ''',
@@ -1160,16 +1150,9 @@ class StudentProfileModel:
                     payload.get('name'),
                     payload.get('mobile'),
                     payload.get('email'),
-                    payload.get('dob'),
                     payload.get('gender'),
                     payload.get('blood_group'),
                     payload.get('address'),
-                    payload.get('city'),
-                    payload.get('state'),
-                    payload.get('pin_code'),
-                    payload.get('district_id'),
-                    payload.get('taluka_id'),
-                    payload.get('nationality'),
                     payload.get('photo'),
                     user_id,
                 ),

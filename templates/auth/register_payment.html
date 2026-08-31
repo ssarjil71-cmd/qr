@@ -18,53 +18,92 @@
 <script>
   const payButton = document.getElementById('payNowBtn');
   const stateBox = document.getElementById('paymentState');
+
+  const resetButton = () => {
+    payButton.disabled = false;
+    payButton.innerHTML = '<i class="bi bi-credit-card me-1"></i> Pay Now';
+  };
+
+  const setState = (message, isError = false) => {
+    stateBox.textContent = message;
+    stateBox.classList.toggle('text-danger', isError);
+    stateBox.classList.toggle('text-muted', !isError);
+  };
+
   payButton.addEventListener('click', async () => {
-    payButton.disabled = true;
-    stateBox.textContent = 'Creating secure Razorpay order...';
-    const response = await fetch('{{ url_for("auth.registration_create_order") }}', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    });
-    const order = await response.json();
-    if (!order.ok) {
-      payButton.disabled = false;
-      stateBox.textContent = order.message || 'Payment Failed';
+    if (!window.Razorpay) {
+      setState('Razorpay checkout failed to load. Please refresh and try again.', true);
       return;
     }
-    const options = {
-      key: '{{ razorpay_key_id }}',
-      amount: order.amount,
-      currency: 'INR',
-      name: 'QR-NexID',
-      description: '{{ user_label }} Registration Fee',
-      order_id: order.order_id,
-      handler: async function (payment) {
-        stateBox.textContent = 'Verifying payment...';
-        const verifyResponse = await fetch('{{ url_for("auth.registration_verify_payment") }}', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payment)
-        });
-        const result = await verifyResponse.json();
-        if (result.ok) {
-          stateBox.textContent = 'Payment Successful';
-          window.location.href = result.redirect_url;
-        } else {
-          payButton.disabled = false;
-          stateBox.textContent = result.message || 'Payment Failed';
-        }
-      },
-      prefill: { contact: '{{ attempt.mobile }}' },
-      theme: { color: '#2563eb' },
-      modal: {
-        ondismiss: function () {
-          payButton.disabled = false;
-          stateBox.textContent = 'Payment Failed/Cancelled';
-        }
+
+    payButton.disabled = true;
+    payButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating order...';
+    setState('Creating secure Razorpay order...');
+
+    try {
+      const response = await fetch('{{ url_for("auth.registration_create_order") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const order = await response.json();
+
+      if (!response.ok || !order.ok) {
+        throw new Error(order.message || 'Unable to create a Razorpay order.');
       }
-    };
-    new Razorpay(options).open();
+
+      const options = {
+        key: '{{ razorpay_key_id }}',
+        amount: Number(order.amount),
+        currency: 'INR',
+        name: 'QR-NexID',
+        description: '{{ user_label }} Registration Fee',
+        order_id: order.order_id,
+        handler: async function (payment) {
+          setState('Verifying payment...');
+          try {
+            const verifyResponse = await fetch('{{ url_for("auth.registration_verify_payment") }}', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payment)
+            });
+            const result = await verifyResponse.json();
+
+            if (!verifyResponse.ok || !result.ok) {
+              throw new Error(result.message || 'Payment verification failed.');
+            }
+
+            setState('Payment successful. Redirecting...');
+            if (result.redirect_url) {
+              window.location.href = result.redirect_url;
+            } else {
+              window.location.reload();
+            }
+          } catch (error) {
+            resetButton();
+            setState(error.message || 'Payment verification failed. Please try again.', true);
+          }
+        },
+        prefill: { contact: '{{ attempt.mobile }}' },
+        theme: { color: '#2563eb' },
+        modal: {
+          ondismiss: function () {
+            resetButton();
+            setState('Payment cancelled. You can try again anytime.', true);
+          }
+        }
+      };
+
+      const razorpayInstance = new Razorpay(options);
+      razorpayInstance.on('payment.failed', function (response) {
+        resetButton();
+        setState(response.error && response.error.description ? response.error.description : 'Payment failed. Please try again.', true);
+      });
+      razorpayInstance.open();
+    } catch (error) {
+      resetButton();
+      setState(error.message || 'The payment could not be processed. Please try again.', true);
+    }
   });
 </script>
 {% endblock %}

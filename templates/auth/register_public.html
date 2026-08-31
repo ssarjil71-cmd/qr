@@ -24,13 +24,23 @@
             <label class="form-label">Email</label>
             <input class="form-control" name="email" type="email" required>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-6 password-field-wrap">
             <label class="form-label">Password</label>
-            <input class="form-control" name="password" type="password" required>
+            <div class="input-group">
+              <input class="form-control password-input" name="password" type="password" required>
+              <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Show password">
+                <i class="bi bi-eye-slash"></i>
+              </button>
+            </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-6 password-field-wrap">
             <label class="form-label">Confirm Password</label>
-            <input class="form-control" name="confirm_password" type="password" required>
+            <div class="input-group">
+              <input class="form-control password-input" name="confirm_password" type="password" required>
+              <button class="btn btn-outline-secondary toggle-password" type="button" aria-label="Show password">
+                <i class="bi bi-eye-slash"></i>
+              </button>
+            </div>
           </div>
           <div class="col-12">
             <div class="form-check">
@@ -47,4 +57,17 @@
     </div>
   </div>
 </div>
+<script>
+  document.querySelectorAll('.toggle-password').forEach((button) => {
+    button.addEventListener('click', () => {
+      const input = button.parentElement.querySelector('.password-input');
+      const icon = button.querySelector('i');
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      icon.classList.toggle('bi-eye', isPassword);
+      icon.classList.toggle('bi-eye-slash', !isPassword);
+      button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+    });
+  });
+</script>
 {% endblock %}

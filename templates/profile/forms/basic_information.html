@@ -3,7 +3,6 @@
   <div class="col-md-6"><label class="form-label">Full Name</label><input class="form-control" name="name" value="{{ user.name or '' }}"></div>
   <div class="col-md-6"><label class="form-label">Mobile Number</label><input class="form-control" name="mobile" value="{{ user.mobile or '' }}"></div>
   <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ user.email or '' }}"></div>
-  <div class="col-md-6"><label class="form-label">Date of Birth</label><input type="date" class="form-control" name="dob" value="{{ user.dob or '' }}"></div>
   <div class="col-md-6">
     <label class="form-label">Gender</label>
     <select class="form-select" name="gender" id="gender_select">
@@ -22,121 +21,10 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-md-6">
-    <label class="form-label">Nationality</label>
-    <select class="form-select" name="nationality" id="nationality_select">
-      <option value="">Select</option>
-      {% for nat in ['India','United States','United Kingdom','Other'] %}
-      <option value="{{ nat }}" {% if (user.nationality or '') == nat %}selected{% endif %}>{{ nat }}</option>
-      {% endfor %}
-    </select>
-  </div> -->
-  <div class="col-md-6">
-    <label class="form-label">State</label>
-    <select class="form-select" name="state_id" id="state_select" data-user-state="{{ user.state or '' }}">
-      <option value="">Loading states...</option>
-    </select>
-  </div>
- <div class="col-md-6">
-    <label class="form-label">District</label>
-    <select class="form-select" id="district_select" name="district_id"></select>
-  </div>
-  <div class="col-md-6">
-    <label class="form-label">Taluka</label>
-    <select class="form-select" id="taluka_select" name="taluka_id"></select>
-  </div>
-  <input type="hidden" name="city" id="city_hidden" value="{{ user.city or '' }}">
-  <div class="col-md-6"><label class="form-label">PIN Code</label><input class="form-control" name="pin_code" id="pin_code_input" value="{{ user.pin_code or '' }}"></div>
   <div class="col-12"><label class="form-label">Address</label><textarea class="form-control" name="address" rows="3">{{ user.address or '' }}</textarea></div>
   <div class="col-md-6"><label class="form-label">Profile Photo</label><input class="form-control" name="photo" type="file" accept="image/*"></div>
   <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
 </form>
-<script>
-  (function(){
-    const stateSelect = document.getElementById('state_select');
-    const districtSelect = document.getElementById('district_select');
-    const talukaSelect = document.getElementById('taluka_select');
-    const pinInput = document.getElementById('pin_code_input');
-    const cityHidden = document.getElementById('city_hidden');
-    const userStateName = stateSelect && stateSelect.dataset ? (stateSelect.dataset.userState || '').trim() : '';
-
-    function empty(el){ while(el.options.length) el.remove(0); }
-
-    function fetchStates(){
-      fetch('/api/states').then(r=>r.json()).then(states=>{
-        empty(stateSelect);
-        stateSelect.add(new Option('Select state',''));
-        let selectedStateId = null;
-        states.forEach(s=>{
-          const opt = new Option(s.name, s.id);
-          stateSelect.add(opt);
-          if(userStateName && s.name.toLowerCase() === userStateName.toLowerCase()) selectedStateId = s.id;
-        });
-        if(selectedStateId) stateSelect.value = selectedStateId;
-        if(selectedStateId) loadDistricts(selectedStateId);
-      }).catch(()=>{
-        empty(stateSelect);
-        stateSelect.add(new Option('Error loading states',''))
-      });
-    }
-
-    function loadDistricts(stateId){
-      empty(districtSelect);
-      empty(talukaSelect);
-      districtSelect.add(new Option('Loading districts',''));
-      fetch('/api/districts/' + stateId).then(r=>r.json()).then(items=>{
-        empty(districtSelect);
-        districtSelect.add(new Option('Select district',''));
-        // try to auto-select using city hidden value
-        const userCity = (cityHidden.value || '').trim().toLowerCase();
-        let selectedDistrictId = null;
-        items.forEach(d=>{
-          const opt = new Option(d.name, d.id);
-          districtSelect.add(opt);
-          if(userCity && d.name && userCity.includes(d.name.toLowerCase())) selectedDistrictId = d.id;
-        });
-        if(selectedDistrictId) { districtSelect.value = selectedDistrictId; loadTalukas(selectedDistrictId); }
-      }).catch(()=>{
-        empty(districtSelect);
-        districtSelect.add(new Option('Error loading districts',''))
-      });
-    }
-
-    function loadTalukas(districtId){
-      empty(talukaSelect);
-      talukaSelect.add(new Option('Loading talukas',''));
-      fetch('/api/talukas/' + districtId).then(r=>r.json()).then(items=>{
-        empty(talukaSelect);
-        talukaSelect.add(new Option('Select taluka',''));
-        const userCity = (cityHidden.value || '').trim().toLowerCase();
-        let selectedTalukaId = null;
-        items.forEach(t=>{
-          const opt = new Option(t.name, t.id);
-          talukaSelect.add(opt);
-          if(userCity && t.name && userCity.includes(t.name.toLowerCase())) selectedTalukaId = t.id;
-        });
-        if(selectedTalukaId) talukaSelect.value = selectedTalukaId;
-      }).catch(()=>{
-        empty(talukaSelect);
-        talukaSelect.add(new Option('Error loading talukas',''))
-      });
-    }
-
-    stateSelect && stateSelect.addEventListener('change', function(){
-      const v = this.value;
-      if(!v){ empty(districtSelect); empty(talukaSelect); districtSelect.add(new Option('Select district','')); talukaSelect.add(new Option('Select taluka','')); return; }
-      loadDistricts(v);
-    });
-
-    districtSelect && districtSelect.addEventListener('change', function(){
-      const v = this.value;
-      if(!v){ empty(talukaSelect); talukaSelect.add(new Option('Select taluka','')); return; }
-      loadTalukas(v);
-    });
-
-    document.addEventListener('DOMContentLoaded', function(){ fetchStates(); });
-  })();
-</script>
 {% elif profile_type == 'employee' %}
 <form method="post" action="{{ url_for('employee.update_employee_basic_information') }}" class="row g-3 mt-1">
   <div class="col-md-6"><label class="form-label">Full Name</label><input class="form-control" name="name" value="{{ user.name or '' }}"></div>

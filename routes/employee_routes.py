@@ -20,7 +20,7 @@ def employee_dashboard():
     if not data:
         flash('Employee profile not found', 'warning')
         return redirect(url_for('auth.dashboard'))
-    return render_template('profile/dashboard.html', **data)
+    return render_template('profile/dashboard.html', hide_navbar=True, **data)
 
 
 @employee_bp.route('/employee/dashboard/<section_key>')

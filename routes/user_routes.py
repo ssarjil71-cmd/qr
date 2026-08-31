@@ -206,7 +206,7 @@ def student_dashboard():
         if permissions.get(section.get('key'), {}).get('is_enabled')
     ]
     data['profile_sections'].sort(key=lambda section: permissions.get(section.get('key'), {}).get('display_order', 0))
-    return render_template('profile/dashboard.html', **data)
+    return render_template('profile/dashboard.html', hide_navbar=True, **data)
 
 
 @user_bp.route('/student/dashboard/<section_key>')
@@ -258,63 +258,15 @@ def update_student_basic_information():
 
     existing_user = StudentProfileModel._get_user(user_id)
 
-    # Map incoming state_id/district_id/taluka_id to validations and store IDs.
-    state_id = request.form.get('state_id')
-    district_id = request.form.get('district_id')
-    taluka_id = request.form.get('taluka_id')
-    # Default to legacy state name if no state_id provided
-    state_name = request.form.get('state') or (existing_user.get('state') if existing_user else None)
-
-    conn = get_conn()
-    cur = conn.cursor()
-    try:
-        if state_id:
-            cur.execute('SELECT name FROM states WHERE id=%s', (state_id,))
-            row = cur.fetchone()
-            if row:
-                state_name = row[0]
-            else:
-                flash('Selected state not found', 'warning')
-                return redirect(url_for('user.student_section_detail', section_key='basic_information'))
-
-        # Validate district belongs to state (if provided)
-        if district_id:
-            if not state_id:
-                # try to resolve state_id from state_name
-                cur.execute('SELECT id FROM states WHERE name=%s', (state_name,))
-                srow = cur.fetchone()
-                state_id = srow[0] if srow else None
-            if state_id:
-                cur.execute('SELECT COUNT(*) FROM districts WHERE id=%s AND state_id=%s', (district_id, state_id))
-                if cur.fetchone()[0] == 0:
-                    flash('Selected district does not belong to the selected state', 'warning')
-                    return redirect(url_for('user.student_section_detail', section_key='basic_information'))
-
-        # Validate taluka belongs to district (if provided)
-        if taluka_id:
-            cur.execute('SELECT COUNT(*) FROM talukas WHERE id=%s AND district_id=%s', (taluka_id, district_id))
-            if cur.fetchone()[0] == 0:
-                flash('Selected taluka does not belong to the selected district', 'warning')
-                return redirect(url_for('user.student_section_detail', section_key='basic_information'))
-    finally:
-        cur.close()
-
     StudentProfileModel.update_basic_information(
         user_id,
         {
             'name': request.form.get('name'),
             'mobile': request.form.get('mobile'),
             'email': request.form.get('email'),
-            'dob': request.form.get('dob'),
             'gender': request.form.get('gender'),
             'blood_group': request.form.get('blood_group'),
             'address': request.form.get('address'),
-            'city': request.form.get('city'),
-            'state': state_name,
-            'pin_code': request.form.get('pin_code'),
-            'nationality': request.form.get('nationality'),
-            'district_id': int(district_id) if district_id else None,
-            'taluka_id': int(taluka_id) if taluka_id else None,
             'photo': photo_path or (existing_user.get('photo') if existing_user else None),
         },
     )
@@ -517,7 +469,7 @@ def update_student_academic_information():
         flash('Academic Information saved successfully', 'success')
     else:
         flash(message, 'warning')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='academic_information'))
 
 
 @user_bp.route('/student/profile/academic-information/delete', methods=['POST'])
@@ -530,7 +482,7 @@ def delete_student_academic_information():
         return redirect(url_for('auth.dashboard'))
     StudentProfileModel.clear_academic_information(user_id)
     flash('Academic Information deleted successfully', 'success')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='academic_information'))
 
 
 @user_bp.route('/student/profile/skills', methods=['POST'])
@@ -681,7 +633,7 @@ def delete_student_skills():
         return redirect(url_for('auth.dashboard'))
     StudentProfileModel.clear_skills(user_id)
     flash('Skills deleted successfully', 'success')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='skills'))
 
 
 @user_bp.route('/student/profile/certificates', methods=['POST'])
@@ -695,7 +647,7 @@ def update_student_certificates():
     title = (request.form.get('title') or '').strip()
     if not title:
         flash('Certificate title is required', 'warning')
-        return redirect(url_for('user.student_dashboard'))
+        return redirect(url_for('user.student_section_detail', section_key='certificates'))
     CertificateModel.create(
         user_id,
         {
@@ -710,7 +662,7 @@ def update_student_certificates():
         },
     )
     flash('Certificate created successfully', 'success')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='certificates'))
 
 
 @user_bp.route('/student/profile/certificates/<int:certificate_id>', methods=['POST'])
@@ -724,7 +676,7 @@ def edit_student_certificate(certificate_id):
     title = (request.form.get('title') or '').strip()
     if not title:
         flash('Certificate title is required', 'warning')
-        return redirect(url_for('user.student_dashboard'))
+        return redirect(url_for('user.student_section_detail', section_key='certificates'))
     updated = CertificateModel.update(
         user_id,
         certificate_id,
@@ -740,7 +692,7 @@ def edit_student_certificate(certificate_id):
         },
     )
     flash('Certificate updated successfully' if updated else 'Certificate not found', 'success' if updated else 'warning')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='certificates'))
 
 
 @user_bp.route('/student/profile/certificates/<int:certificate_id>/delete', methods=['POST'])
@@ -753,7 +705,7 @@ def delete_student_certificate(certificate_id):
         return redirect(url_for('auth.dashboard'))
     deleted = CertificateModel.delete(user_id, certificate_id)
     flash('Certificate deleted successfully' if deleted else 'Certificate not found', 'success' if deleted else 'warning')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='certificates'))
 
 
 @user_bp.route('/student/profile/upload-documents', methods=['POST'])
@@ -886,7 +838,7 @@ def delete_student_resume():
         return redirect(url_for('auth.dashboard'))
     ResumeProfileModel.delete(user_id)
     flash('Resume deleted successfully', 'success')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='resume'))
 
 
 @user_bp.route('/student/profile/projects', methods=['POST'])
@@ -900,7 +852,7 @@ def create_student_project():
     title = (request.form.get('title') or '').strip()
     if not title:
         flash('Project title is required', 'warning')
-        return redirect(url_for('user.student_dashboard'))
+        return redirect(url_for('user.student_section_detail', section_key='projects'))
     ProjectModel.create(
         user_id,
         {
@@ -914,7 +866,7 @@ def create_student_project():
         },
     )
     flash('Project created successfully', 'success')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='projects'))
 
 
 @user_bp.route('/student/profile/projects/<int:project_id>', methods=['POST'])
@@ -928,7 +880,7 @@ def edit_student_project(project_id):
     title = (request.form.get('title') or '').strip()
     if not title:
         flash('Project title is required', 'warning')
-        return redirect(url_for('user.student_dashboard'))
+        return redirect(url_for('user.student_section_detail', section_key='projects'))
     updated = ProjectModel.update(
         user_id,
         project_id,
@@ -943,7 +895,7 @@ def edit_student_project(project_id):
         },
     )
     flash('Project updated successfully' if updated else 'Project not found', 'success' if updated else 'warning')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='projects'))
 
 
 @user_bp.route('/student/profile/projects/<int:project_id>/delete', methods=['POST'])
@@ -956,7 +908,7 @@ def delete_student_project(project_id):
         return redirect(url_for('auth.dashboard'))
     deleted = ProjectModel.delete(user_id, project_id)
     flash('Project deleted successfully' if deleted else 'Project not found', 'success' if deleted else 'warning')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='projects'))
 
 
 @user_bp.route('/student/profile/social-links', methods=['POST'])
@@ -971,7 +923,7 @@ def create_student_social_link():
     profile_url = (request.form.get('profile_url') or '').strip()
     if not platform or not profile_url:
         flash('Platform and profile URL are required', 'warning')
-        return redirect(url_for('user.student_dashboard'))
+        return redirect(url_for('user.student_section_detail', section_key='social_links'))
     SocialLinkModel.create(
         user_id,
         {
@@ -981,7 +933,7 @@ def create_student_social_link():
         },
     )
     flash('Social link created successfully', 'success')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='social_links'))
 
 
 @user_bp.route('/student/profile/social-links/<int:social_link_id>', methods=['POST'])
@@ -996,7 +948,7 @@ def edit_student_social_link(social_link_id):
     profile_url = (request.form.get('profile_url') or '').strip()
     if not platform or not profile_url:
         flash('Platform and profile URL are required', 'warning')
-        return redirect(url_for('user.student_dashboard'))
+        return redirect(url_for('user.student_section_detail', section_key='social_links'))
     updated = SocialLinkModel.update(
         user_id,
         social_link_id,
@@ -1007,7 +959,7 @@ def edit_student_social_link(social_link_id):
         },
     )
     flash('Social link updated successfully' if updated else 'Social link not found', 'success' if updated else 'warning')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='social_links'))
 
 
 @user_bp.route('/student/profile/social-links/<int:social_link_id>/delete', methods=['POST'])
@@ -1020,4 +972,4 @@ def delete_student_social_link(social_link_id):
         return redirect(url_for('auth.dashboard'))
     deleted = SocialLinkModel.delete(user_id, social_link_id)
     flash('Social link deleted successfully' if deleted else 'Social link not found', 'success' if deleted else 'warning')
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('user.student_section_detail', section_key='social_links'))

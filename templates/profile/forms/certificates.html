@@ -7,7 +7,7 @@
   <div class="col-md-6"><label class="form-label">Credential URL</label><input class="form-control" name="credential_url"></div>
   <div class="col-12"><label class="form-label">Document URL</label><input class="form-control" name="document_url"></div>
   <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
-  <div class="col-12"><button class="btn btn-primary" type="submit">Add Certificate</button></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
 </form>
 
 {% for certificate in certificates %}
@@ -21,7 +21,7 @@
   <div class="col-12"><label class="form-label">Document URL</label><input class="form-control" name="document_url" value="{{ certificate.document_url or '' }}"></div>
   <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ certificate.description or '' }}</textarea></div>
   <div class="col-12 d-flex gap-2">
-    <button class="btn btn-primary" type="submit">Update</button>
+    <button class="btn btn-primary" type="submit">Save</button>
   </div>
 </form>
 <form method="post" action="{{ url_for('employee.delete_employee_certificate', certificate_id=certificate.id) if profile_type == 'employee' else url_for('user.delete_student_certificate', certificate_id=certificate.id) }}" class="mb-3">

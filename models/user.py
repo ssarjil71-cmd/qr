@@ -43,6 +43,45 @@ class UserModel:
         return row
 
     @staticmethod
+    def find_by_mobile(mobile):
+        db_conn, cur = UserModel._get_conn_and_cursor()
+        cur.execute('SELECT id, email, password_hash, is_active, user_type, name, mobile FROM users WHERE mobile=%s', (mobile,))
+        row = cur.fetchone()
+        cur.close()
+        return row
+
+    @staticmethod
+    def find_accounts_by_mobile(mobile):
+        db_conn, cur = UserModel._get_conn_and_cursor()
+        cur.execute(
+            'SELECT id, name, email, user_type, is_active, mobile FROM users WHERE mobile=%s ORDER BY id ASC',
+            (mobile,),
+        )
+        rows = cur.fetchall()
+        cur.close()
+        return rows
+
+    @staticmethod
+    def update_password(mobile, new_password):
+        db_conn, cur = UserModel._get_conn_and_cursor()
+        cur.execute(
+            'UPDATE users SET password_hash=%s WHERE mobile=%s',
+            (generate_password_hash(new_password), mobile),
+        )
+        db_conn.commit()
+        cur.close()
+
+    @staticmethod
+    def update_password_by_id(user_id, new_password):
+        db_conn, cur = UserModel._get_conn_and_cursor()
+        cur.execute(
+            'UPDATE users SET password_hash=%s WHERE id=%s',
+            (generate_password_hash(new_password), user_id),
+        )
+        db_conn.commit()
+        cur.close()
+
+    @staticmethod
     def find_by_id(uid):
         db_conn, cur = UserModel._get_conn_and_cursor()
         cur.execute('SELECT * FROM users WHERE id=%s', (uid,))

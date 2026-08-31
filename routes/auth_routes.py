@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, send_file, abort
 import werkzeug
+import time
 from models.user import UserModel
 from models.registration import RegistrationModel
 from models.registration_payment import RegistrationPaymentModel
@@ -133,6 +134,42 @@ def _create_public_user(user_type, full_name, mobile, email, password):
     CardPermissionModel.set_user_card_type(uid, user_type)
     CardPermissionModel.assign_defaults_for_user(uid)
     return uid
+
+
+def _clear_forgot_password_session():
+    for key in [
+        'forgot_password_mobile',
+        'forgot_password_verified',
+        'forgot_password_otp_time',
+        'forgot_password_account_id',
+        'forgot_password_accounts',
+    ]:
+        session.pop(key, None)
+
+
+def _normalize_forgot_password_accounts(accounts):
+    normalized = []
+    for account in accounts or []:
+        if hasattr(account, 'keys'):
+            item = dict(account)
+            normalized.append({
+                'id': item.get('id'),
+                'name': item.get('name') or 'Unknown User',
+                'email': item.get('email') or 'No email',
+                'user_type': item.get('user_type') or 'user',
+                'is_active': item.get('is_active', True),
+            })
+            continue
+
+        row = list(account) if isinstance(account, (list, tuple)) else []
+        normalized.append({
+            'id': row[0] if len(row) > 0 else getattr(account, 'id', None),
+            'name': row[1] if len(row) > 1 else getattr(account, 'name', 'Unknown User') or 'Unknown User',
+            'email': row[2] if len(row) > 2 else getattr(account, 'email', 'No email') or 'No email',
+            'user_type': row[3] if len(row) > 3 else getattr(account, 'user_type', 'user') or 'user',
+            'is_active': row[4] if len(row) > 4 else getattr(account, 'is_active', True),
+        })
+    return normalized
 
 
 @auth_bp.route('/register/select')
@@ -286,22 +323,32 @@ def registration_create_order():
     attempt = RegistrationPaymentModel.get_attempt(token) if token else None
     if not attempt or attempt['otp_status'] != 'verified':
         return {'ok': False, 'message': 'OTP verification required'}, 403
+    if attempt['payment_status'] == 'paid':
+        return {'ok': True, 'order_id': attempt['razorpay_order_id'], 'amount': attempt['amount_paise'], 'already_paid': True}
+
     current_amount = RegistrationPaymentModel.get_price(attempt['user_type'])
     if current_amount is None or int(round(current_amount * 100)) != attempt['amount_paise']:
         return {'ok': False, 'message': 'Registration price changed. Please restart registration.'}, 409
+
     if attempt['razorpay_order_id']:
         return {'ok': True, 'order_id': attempt['razorpay_order_id'], 'amount': attempt['amount_paise']}
+
     try:
         order = RazorpayGateway.create_order(attempt['amount_paise'], f'reg_{attempt["id"]}')
     except GatewayError as exc:
         return {'ok': False, 'message': str(exc)}, 502
+
+    order_id = order.get('id') if isinstance(order, dict) else None
+    if not order_id:
+        return {'ok': False, 'message': 'Razorpay did not return a valid order ID.'}, 502
+
     RegistrationPaymentModel.update_attempt(
         token,
-        razorpay_order_id=order.get('id'),
+        razorpay_order_id=order_id,
         payment_status='pending',
         status='payment_pending',
     )
-    return {'ok': True, 'order_id': order.get('id'), 'amount': attempt['amount_paise']}
+    return {'ok': True, 'order_id': order_id, 'amount': attempt['amount_paise']}
 
 
 @auth_bp.route('/register/payment/verify', methods=['POST'])
@@ -310,20 +357,31 @@ def registration_verify_payment():
     attempt = RegistrationPaymentModel.get_attempt(token) if token else None
     if not attempt or attempt['otp_status'] != 'verified':
         return {'ok': False, 'message': 'OTP verification required'}, 403
+    if attempt['payment_status'] == 'paid':
+        return {'ok': True, 'redirect_url': url_for(REGISTRATION_TYPE_ROUTES[attempt['user_type']])}
+
     payload = request.get_json(silent=True) or request.form
-    order_id = payload.get('razorpay_order_id')
-    payment_id = payload.get('razorpay_payment_id')
-    signature = payload.get('razorpay_signature')
+    order_id = (payload.get('razorpay_order_id') or '').strip()
+    payment_id = (payload.get('razorpay_payment_id') or '').strip()
+    signature = (payload.get('razorpay_signature') or '').strip()
+
+    if not order_id or not payment_id or not signature:
+        RegistrationPaymentModel.update_attempt(token, payment_status='failed', status='payment_failed')
+        return {'ok': False, 'message': 'Payment verification data is incomplete.'}, 400
     if order_id != attempt['razorpay_order_id']:
         RegistrationPaymentModel.update_attempt(token, payment_status='failed', status='payment_failed')
-        return {'ok': False, 'message': 'Invalid order'}, 400
+        return {'ok': False, 'message': 'Payment order mismatch. Please try again.'}, 400
+
     try:
         valid = RazorpayGateway.verify_signature(order_id, payment_id, signature)
     except GatewayError as exc:
+        RegistrationPaymentModel.update_attempt(token, payment_status='failed', status='payment_failed')
         return {'ok': False, 'message': str(exc)}, 502
+
     if not valid:
         RegistrationPaymentModel.update_attempt(token, payment_status='failed', status='payment_failed')
-        return {'ok': False, 'message': 'Payment verification failed'}, 400
+        return {'ok': False, 'message': 'Payment verification failed. Signature did not match.'}, 400
+
     RegistrationPaymentModel.update_attempt(
         token,
         razorpay_payment_id=payment_id,
@@ -511,7 +569,7 @@ def profile_details():
                 session['user_type'] = refreshed_user[1]
         if session.get('registration_user_id'):
             session.pop('registration_user_id', None)
-            flash('Registration completed successfully. Please log in.', 'success')
+            flash('Your account has been created successfully. Please log in to complete your profile details.', 'success')
             return redirect(url_for('auth.login'))
         flash('Profile details updated successfully', 'success')
         return redirect(url_for('auth.profile_details'))
@@ -568,7 +626,7 @@ def _public_registration_handler(user_type, card_user_type=None):
         RegistrationPaymentModel.update_attempt(token, user_id=uid, status='registration_created')
         session.pop('registration_payment_token', None)
         session.pop('registration_payment_user_type', None)
-        flash('Payment successful. Registration completed. Please log in.', 'success')
+        flash('Your account has been created successfully. Please log in to complete your profile details.', 'success')
         return redirect(url_for('auth.login'))
 
     return render_template(
@@ -599,6 +657,146 @@ def verify_otp():
         flash('Invalid OTP', 'warning')
         return redirect(url_for('auth.verify_otp'))
     return render_template('auth/verify_otp.html')
+
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        mobile = (request.form.get('mobile') or '').strip()
+        if not mobile:
+            flash('Enter your registered mobile number', 'warning')
+            return redirect(url_for('auth.forgot_password'))
+        try:
+            normalized_mobile = normalize_mobile(mobile)
+        except GatewayError as exc:
+            flash(str(exc), 'warning')
+            return redirect(url_for('auth.forgot_password'))
+        accounts = UserModel.find_accounts_by_mobile(normalized_mobile)
+        if not accounts:
+            flash('This mobile number is not registered.', 'warning')
+            return redirect(url_for('auth.forgot_password'))
+        try:
+            MSG91Gateway.send_otp(normalized_mobile)
+        except GatewayError as exc:
+            flash(f'Unable to send OTP: {exc}', 'warning')
+            return redirect(url_for('auth.forgot_password'))
+        normalized_accounts = _normalize_forgot_password_accounts(accounts)
+        session['forgot_password_mobile'] = normalized_mobile
+        session['forgot_password_otp_time'] = time.time()
+        session['forgot_password_verified'] = False
+        session['forgot_password_accounts'] = normalized_accounts
+        session['forgot_password_account_id'] = normalized_accounts[0]['id'] if len(normalized_accounts) == 1 else None
+        flash('OTP sent to your registered mobile number.', 'success')
+        return redirect(url_for('auth.forgot_password_verify'))
+    return render_template('auth/forgot_password.html')
+
+
+@auth_bp.route('/forgot-password/verify', methods=['GET', 'POST'])
+def forgot_password_verify():
+    mobile = session.get('forgot_password_mobile')
+    if not mobile:
+        flash('Please start the forgot password flow again.', 'warning')
+        return redirect(url_for('auth.forgot_password'))
+    if request.method == 'POST':
+        otp = (request.form.get('otp') or '').strip()
+        otp_time = session.get('forgot_password_otp_time', 0)
+        if time.time() - float(otp_time) > 600:
+            _clear_forgot_password_session()
+            flash('OTP has expired. Please request a new one.', 'warning')
+            return redirect(url_for('auth.forgot_password'))
+        try:
+            MSG91Gateway.verify_otp(mobile, otp)
+        except GatewayError as exc:
+            flash(str(exc), 'warning')
+            return redirect(url_for('auth.forgot_password_verify'))
+        accounts = session.get('forgot_password_accounts') or []
+        session['forgot_password_verified'] = True
+        if len(accounts) == 1:
+            session['forgot_password_account_id'] = accounts[0]['id']
+            flash('OTP verified successfully.', 'success')
+            return redirect(url_for('auth.forgot_password_reset'))
+        flash('OTP verified successfully. Which account do you want to reset?', 'success')
+        return redirect(url_for('auth.forgot_password_select_account'))
+    return render_template('auth/forgot_password_verify.html', mobile=mobile)
+
+
+@auth_bp.route('/forgot-password/select-account', methods=['GET', 'POST'])
+def forgot_password_select_account():
+    mobile = session.get('forgot_password_mobile')
+    if not mobile or session.get('forgot_password_verified') is not True:
+        flash('Please verify your OTP before selecting an account.', 'warning')
+        return redirect(url_for('auth.forgot_password'))
+    accounts = session.get('forgot_password_accounts') or []
+    if len(accounts) <= 1:
+        if accounts:
+            session['forgot_password_account_id'] = accounts[0]['id']
+        return redirect(url_for('auth.forgot_password_reset'))
+    if request.method == 'POST':
+        selected_id = request.form.get('account_id')
+        if not selected_id:
+            flash('Please select the account you want to reset.', 'warning')
+            return redirect(url_for('auth.forgot_password_select_account'))
+        selected_account = next((account for account in accounts if str(account['id']) == str(selected_id)), None)
+        if not selected_account:
+            flash('Invalid account selection.', 'warning')
+            return redirect(url_for('auth.forgot_password_select_account'))
+        session['forgot_password_account_id'] = selected_account['id']
+        return redirect(url_for('auth.forgot_password_reset'))
+    return render_template('auth/forgot_password_select_account.html', mobile=mobile, accounts=accounts)
+
+
+@auth_bp.route('/forgot-password/resend', methods=['POST'])
+def forgot_password_resend():
+    mobile = session.get('forgot_password_mobile')
+    if not mobile:
+        flash('Please start the forgot password flow again.', 'warning')
+        return redirect(url_for('auth.forgot_password'))
+    try:
+        MSG91Gateway.send_otp(mobile)
+        session['forgot_password_otp_time'] = time.time()
+        flash('A new OTP has been sent.', 'success')
+    except GatewayError as exc:
+        flash(f'Unable to send OTP: {exc}', 'warning')
+    return redirect(url_for('auth.forgot_password_verify'))
+
+
+@auth_bp.route('/forgot-password/reset', methods=['GET', 'POST'])
+def forgot_password_reset():
+    mobile = session.get('forgot_password_mobile')
+    if not mobile or session.get('forgot_password_verified') is not True:
+        flash('Please verify your OTP before resetting the password.', 'warning')
+        return redirect(url_for('auth.forgot_password'))
+    account_id = session.get('forgot_password_account_id')
+    if account_id is None:
+        accounts = session.get('forgot_password_accounts') or []
+        if len(accounts) == 1:
+            session['forgot_password_account_id'] = accounts[0]['id']
+            account_id = accounts[0]['id']
+        else:
+            flash('Please select the account you want to reset.', 'warning')
+            return redirect(url_for('auth.forgot_password_select_account'))
+    if request.method == 'POST':
+        new_password = request.form.get('new_password') or ''
+        confirm_password = request.form.get('confirm_password') or ''
+        if not new_password or not confirm_password:
+            flash('Both password fields are required.', 'warning')
+            return redirect(url_for('auth.forgot_password_reset'))
+        if new_password != confirm_password:
+            flash('New password and confirm password must match.', 'warning')
+            return redirect(url_for('auth.forgot_password_reset'))
+        if len(new_password) < 6:
+            flash('Password must be at least 6 characters long.', 'warning')
+            return redirect(url_for('auth.forgot_password_reset'))
+        UserModel.update_password_by_id(account_id, new_password)
+        _clear_forgot_password_session()
+        flash('Your password has been reset successfully. Please log in.', 'success')
+        return redirect(url_for('auth.login'))
+    selected_account = None
+    for account in session.get('forgot_password_accounts') or []:
+        if str(account['id']) == str(account_id):
+            selected_account = account
+            break
+    return render_template('auth/forgot_password_reset.html', mobile=mobile, selected_account=selected_account)
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -867,4 +1065,4 @@ def dashboard():
         return redirect(url_for('employee.employee_dashboard'))
     if StudentProfileModel.has_student_profile(session['user_id']):
         return redirect(url_for('user.student_dashboard'))
-    return render_template('auth/dashboard.html')
+    return render_template('auth/dashboard.html', hide_navbar=True)
