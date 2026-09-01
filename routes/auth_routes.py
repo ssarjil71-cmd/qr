@@ -917,6 +917,11 @@ def dashboard_public():
     if not user:
         abort(404)
 
+    subscription = SubscriptionService.get_user_subscription_summary(user[0])
+    if not SubscriptionService.is_public_access_allowed(date.today(), subscription.get('subscription_expiry_date') if subscription else None):
+        SubscriptionService.sync_user_subscription_status(user[0])
+        return render_template('qr/subscription_expired.html', hide_navbar=True)
+
     if user[1] == 'student':
         student_data = StudentProfileModel.get_student_dashboard_data(user[0])
         if not student_data:

@@ -169,6 +169,15 @@ class SubscriptionService:
         return SubscriptionService.Status['ACTIVE']
 
     @staticmethod
+    def is_public_access_allowed(reference_date, expiry_date):
+        today = SubscriptionService.today_date(reference_date)
+        if not expiry_date:
+            return False
+        expiry = expiry_date if isinstance(expiry_date, date) else datetime.strptime(str(expiry_date), '%Y-%m-%d').date()
+        status = SubscriptionService.get_subscription_status(today, expiry)
+        return status in (SubscriptionService.Status['ACTIVE'], SubscriptionService.Status['EXPIRING_SOON'])
+
+    @staticmethod
     def get_remaining_days(reference_date, expiry_date):
         today = SubscriptionService.today_date(reference_date)
         if not expiry_date:

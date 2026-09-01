@@ -45,6 +45,11 @@ class SubscriptionServiceTests(unittest.TestCase):
         self.assertIsNone(SubscriptionService.get_valid_quick_action_base(None, None))
         self.assertEqual(SubscriptionService.get_valid_quick_action_base(date(2025, 5, 1), date(2026, 5, 1)), date(2026, 5, 1))
 
+    def test_expired_subscription_blocks_public_qr_access(self):
+        self.assertTrue(SubscriptionService.is_public_access_allowed(date(2026, 9, 1), date(2026, 9, 10)))
+        self.assertFalse(SubscriptionService.is_public_access_allowed(date(2026, 9, 12), date(2026, 9, 10)))
+        self.assertFalse(SubscriptionService.is_public_access_allowed(date(2026, 9, 1), None))
+
 
 if __name__ == '__main__':
     unittest.main()

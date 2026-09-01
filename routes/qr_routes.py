@@ -1,7 +1,9 @@
+from datetime import date
 from flask import Blueprint, request, current_app, render_template, abort, redirect, url_for
 from models.user import UserModel
 from models.scan import ScanModel
 from models.qr_identity import QRIdentityModel
+from services.subscription_service import SubscriptionService
 
 qr_bp = Blueprint('qr', __name__, template_folder='../templates')
 
@@ -54,6 +56,12 @@ def profile(token):
             abort(404)
         QRIdentityModel.increment_scan(token, QRIdentityModel.PROFILE)
 
+    subscription = SubscriptionService.get_user_subscription_summary(user_id)
+    if not SubscriptionService.is_public_access_allowed(date.today(), subscription.get('subscription_expiry_date') if subscription else None):
+        SubscriptionService.sync_user_subscription_status(user_id)
+        ScanModel.log_scan(user_id, request.remote_addr, request.headers.get('User-Agent'))
+        return render_template('qr/subscription_expired.html', hide_navbar=True)
+
     ScanModel.log_scan(user_id, request.remote_addr, request.headers.get('User-Agent'))
     return redirect(url_for('auth.dashboard_public', token=token))
 
@@ -66,6 +74,12 @@ def emergency(token):
     user_row = UserModel.find_by_id(card[1])
     if not user_row:
         abort(404)
+
+    subscription = SubscriptionService.get_user_subscription_summary(user_row[0])
+    if not SubscriptionService.is_public_access_allowed(date.today(), subscription.get('subscription_expiry_date') if subscription else None):
+        SubscriptionService.sync_user_subscription_status(user_row[0])
+        ScanModel.log_scan(user_row[0], request.remote_addr, request.headers.get('User-Agent'))
+        return render_template('qr/subscription_expired.html', hide_navbar=True)
 
     QRIdentityModel.increment_scan(token, QRIdentityModel.EMERGENCY)
     ScanModel.log_scan(user_row[0], request.remote_addr, request.headers.get('User-Agent'))
