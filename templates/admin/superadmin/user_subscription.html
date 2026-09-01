@@ -1,0 +1,181 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+<style>
+  .subscription-shell { display:grid; gap:20px; }
+  .section-panel { border:1px solid var(--border-color); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(15,23,42,.05); padding:20px; }
+  .summary-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; }
+  .summary-item { padding:14px; border:1px solid #EEF2F7; border-radius:12px; background:#FCFCFD; }
+  .summary-label { color:var(--text-secondary); font-size:12px; font-weight:700; text-transform:uppercase; }
+  .summary-value { margin-top:8px; font-size:1.1rem; font-weight:800; }
+  .badge-status { display:inline-block; padding:7px 12px; border-radius:999px; font-weight:800; }
+  .badge-active { background:rgba(16,185,129,.12); color:#047857; }
+  .badge-soon { background:rgba(245,158,11,.12); color:#B45309; }
+  .badge-expired { background:rgba(239,68,68,.12); color:#B91C1C; }
+  .badge-suspended { background:#F1F5F9; color:#475569; }
+  .quick-actions { display:flex; flex-wrap:wrap; gap:8px; }
+  .quick-actions button { border:1px solid var(--border-color); border-radius:10px; background:#fff; padding:8px 12px; font-weight:700; }
+  .quick-actions button:disabled { opacity:0.45; cursor:not-allowed; }
+  .primary-action { background:var(--primary-color, #0d6efd); color:#fff; border:0; padding:10px 18px; border-radius:10px; font-weight:700; }
+  @media (max-width: 900px) { .summary-grid { grid-template-columns:1fr 1fr; } }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns:1fr; } }
+</style>
+<div class="subscription-shell">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div>
+      <div class="text-secondary small fw-bold text-uppercase">Subscription Control</div>
+      <h1 class="mb-0 fw-bold">{{ user[2] or user[1] }}</h1>
+    </div>
+    <a href="{{ url_for('superadmin.users') }}" class="btn btn-outline-secondary">Back to Users</a>
+  </div>
+
+  <div class="section-panel">
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">Subscription Start</div>
+        <div class="summary-value">{{ summary.subscription_start_date.strftime('%d %b %Y') if summary and summary.subscription_start_date else 'Not set' }}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Subscription Expiry</div>
+        <div class="summary-value">{{ expiry_label }}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Remaining Days</div>
+        <div class="summary-value">{{ summary.remaining_days if summary else 0 }} days</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Status</div>
+        <div class="summary-value">
+          {% set status = summary.subscription_status if summary else 'Suspended' %}
+          <span class="badge-status {% if status == 'Active' %}badge-active{% elif status == 'Expiring Soon' %}badge-soon{% elif status == 'Expired' %}badge-expired{% else %}badge-suspended{% endif %}">{{ subscription_label if not summary or not summary.subscription_expiry_date else status }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-panel">
+    <h2 class="h5 fw-bold mb-3">Update Expiry Date</h2>
+    {% if not summary or not summary.subscription_expiry_date %}
+      <div class="alert alert-warning mb-3">Subscription: Not Activated • Expiry: Not Set. Set an expiry date to activate the subscription.</div>
+    {% endif %}
+    <form id="subscriptionExpiryForm" method="post" onsubmit="return confirmSubscriptionChange(event);">
+      <input type="hidden" id="currentExpiryValue" value="{{ summary.subscription_expiry_date.isoformat() if summary and summary.subscription_expiry_date else '' }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label fw-bold">Manual Expiry Date</label>
+          <input id="subscriptionExpiryDate" type="date" class="form-control" name="subscription_expiry_date" value="{{ summary.subscription_expiry_date.isoformat() if summary and summary.subscription_expiry_date else '' }}">
+        </div>
+        <div class="col-md-7">
+          <div class="quick-actions">
+            <button type="button" class="quick-adjust" data-offset="1" data-unit="month" {% if not can_extend %}disabled{% endif %}>+1 Month</button>
+            <button type="button" class="quick-adjust" data-offset="3" data-unit="month" {% if not can_extend %}disabled{% endif %}>+3 Months</button>
+            <button type="button" class="quick-adjust" data-offset="6" data-unit="month" {% if not can_extend %}disabled{% endif %}>+6 Months</button>
+            <button type="button" class="quick-adjust" data-offset="1" data-unit="year" {% if not can_extend %}disabled{% endif %}>+1 Year</button>
+          </div>
+        </div>
+      </div>
+      <div class="mt-3 d-flex justify-content-start">
+        <button type="submit" class="primary-action">Save Changes</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="section-panel">
+    <h2 class="h5 fw-bold mb-3">Audit History</h2>
+    {% if logs %}
+      <div class="list-group">
+        {% for log in logs %}
+          <div class="list-group-item">
+            <div class="fw-semibold">Changed from {{ log.previous_expiry_date or 'N/A' }} to {{ log.new_expiry_date or 'N/A' }}</div>
+            <div class="text-muted small">Reason: {{ log.change_reason }} • By: {{ log.changed_by or 'system' }} • {{ log.changed_at.strftime('%d %b %Y %H:%M') if log.changed_at else '-' }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">No subscription changes recorded yet.</p>
+    {% endif %}
+  </div>
+</div>
+<script>
+  function parseDateString(value) {
+    if (!value) return null;
+    const [year, month, day] = value.split('-').map(Number);
+    if (!year || !month || !day) return null;
+    return new Date(year, month - 1, day);
+  }
+
+  function addMonths(baseDate, months) {
+    const date = new Date(baseDate.getTime());
+    date.setMonth(date.getMonth() + months);
+    return date;
+  }
+
+  function addYears(baseDate, years) {
+    const date = new Date(baseDate.getTime());
+    date.setFullYear(date.getFullYear() + years);
+    return date;
+  }
+
+  function formatISODate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function applyQuickAdjustment(event) {
+    const button = event.currentTarget;
+    const unit = button.dataset.unit;
+    const amount = Number(button.dataset.offset || 0);
+    const currentValue = document.getElementById('currentExpiryValue').value;
+    const baseDateValue = currentValue || document.getElementById('subscriptionExpiryDate').value;
+    if (!baseDateValue) {
+      alert('No valid subscription expiry exists yet. Select a date manually to set the subscription expiry first.');
+      return;
+    }
+    const baseDate = parseDateString(baseDateValue);
+    if (!baseDate) {
+      alert('The current subscription date is invalid. Please choose a valid date manually.');
+      return;
+    }
+
+    let result = new Date(baseDate.getTime());
+    if (unit === 'month') result = addMonths(result, amount);
+    if (unit === 'year') result = addYears(result, amount);
+
+    document.getElementById('subscriptionExpiryDate').value = formatISODate(result);
+  }
+
+  function confirmSubscriptionChange(event) {
+    event.preventDefault();
+    const input = document.getElementById('subscriptionExpiryDate');
+    const selected = input.value;
+    const current = document.getElementById('currentExpiryValue').value;
+
+    if (!selected) {
+      alert('Expiry date is required. Please choose a valid date before saving.');
+      return false;
+    }
+
+    const selectedDate = parseDateString(selected);
+    if (!selectedDate) {
+      alert('Please enter a valid expiry date in the correct format.');
+      return false;
+    }
+
+    const currentDate = current ? parseDateString(current) : null;
+    const message = currentDate && selectedDate < currentDate
+      ? `Warning: this decreases the subscription validity from ${current} to ${selected}. Are you sure you want to change the subscription expiry date?`
+      : `Are you sure you want to change the subscription expiry date?\nCurrent expiry: ${current || 'Not set'}\nNew expiry: ${selected}`;
+
+    const confirmed = window.confirm(message);
+    if (!confirmed) return false;
+
+    event.target.submit();
+    return true;
+  }
+
+  document.querySelectorAll('.quick-adjust').forEach((button) => {
+    button.addEventListener('click', applyQuickAdjustment);
+  });
+</script>
+{% endblock %}

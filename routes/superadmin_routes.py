@@ -1,12 +1,16 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, Response
 import json
-from datetime import datetime
+from datetime import datetime, date
+
+import MySQLdb.cursors
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, Response
+
 from services.db import get_conn
 from werkzeug.security import check_password_hash
 from models.organization import OrganizationModel
 from models.user import UserModel
 from models.card_permission import CardPermissionModel
 from models.registration_payment import RegistrationPaymentModel
+from services.subscription_service import SubscriptionService
 
 superadmin_bp = Blueprint('superadmin', __name__, template_folder='../templates/admin/superadmin')
 
@@ -294,6 +298,79 @@ def users():
     q = request.args.get('q')
     users = UserModel.list_users(search=q)
     return render_template('admin/superadmin/users.html', users=users, q=q)
+
+
+@superadmin_bp.route('/users/<int:uid>/subscription', methods=['GET','POST'])
+@admin_login_required
+def user_subscription(uid):
+    user = UserModel.find_by_id(uid)
+    if not user:
+        flash('User not found', 'warning')
+        return redirect(url_for('superadmin.users'))
+    summary = SubscriptionService.get_user_subscription_summary(uid)
+    logs = []
+    conn = get_conn(); cur = conn.cursor(cursorclass=MySQLdb.cursors.DictCursor)
+    try:
+        cur.execute(
+            'SELECT previous_expiry_date, new_expiry_date, change_reason, changed_by, changed_at FROM subscription_expiry_audit WHERE user_id=%s ORDER BY changed_at DESC LIMIT 20',
+            (uid,),
+        )
+        logs = cur.fetchall()
+    finally:
+        cur.close()
+
+    start_date = summary['subscription_start_date'] if summary and summary.get('subscription_start_date') else None
+    expiry_date = summary['subscription_expiry_date'] if summary and summary.get('subscription_expiry_date') else None
+    valid_quick_action_base = SubscriptionService.get_valid_quick_action_base(start_date, expiry_date)
+    can_extend = valid_quick_action_base is not None
+
+    if request.method == 'POST':
+        quick = (request.form.get('quick_action') or '').strip()
+        expiry_raw = (request.form.get('subscription_expiry_date') or '').strip()
+
+        if quick:
+            if not can_extend:
+                flash('This user does not have a valid subscription base date. Set an expiry date manually or activate the subscription first.', 'warning')
+                return redirect(url_for('superadmin.user_subscription', uid=uid))
+            base_date = valid_quick_action_base
+            if quick == 'plus_1_month':
+                expiry = SubscriptionService.add_calendar_months(base_date, 1)
+            elif quick == 'plus_3_months':
+                expiry = SubscriptionService.add_calendar_months(base_date, 3)
+            elif quick == 'plus_6_months':
+                expiry = SubscriptionService.add_calendar_months(base_date, 6)
+            elif quick == 'plus_1_year':
+                expiry = SubscriptionService.add_calendar_years(base_date, 1)
+            else:
+                flash('Unsupported quick action.', 'warning')
+                return redirect(url_for('superadmin.user_subscription', uid=uid))
+        elif expiry_raw:
+            try:
+                expiry = datetime.strptime(expiry_raw, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Enter a valid expiry date in YYYY-MM-DD format.', 'warning')
+                return redirect(url_for('superadmin.user_subscription', uid=uid))
+        else:
+            flash('Expiry date is required.', 'warning')
+            return redirect(url_for('superadmin.user_subscription', uid=uid))
+
+        try:
+            result = SubscriptionService.set_manual_expiry_date(uid, expiry, changed_by=session.get('super_admin_id'), reason='superadmin_manual_update')
+            flash(f'Subscription expiry updated to {result["subscription_expiry_date"].strftime("%d %b %Y")}.', 'success')
+            return redirect(url_for('superadmin.user_subscription', uid=uid))
+        except ValueError as exc:
+            flash(str(exc), 'warning')
+        except Exception:
+            flash('Unable to update subscription expiry. Please try again.', 'warning')
+    return render_template(
+        'admin/superadmin/user_subscription.html',
+        user=user,
+        summary=summary,
+        logs=logs,
+        can_extend=can_extend,
+        subscription_label='Not Activated' if not expiry_date else ('Active' if summary and summary.get('subscription_status') == 'Active' else (summary.get('subscription_status') if summary else 'Suspended')),
+        expiry_label='Not Set' if not expiry_date else expiry_date.strftime('%d %b %Y'),
+    )
 
 
 @superadmin_bp.route('/users/<int:uid>/delete', methods=['POST'])

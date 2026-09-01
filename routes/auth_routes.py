@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, send_file, abort
 import werkzeug
 import time
+from datetime import date
 from models.user import UserModel
 from models.registration import RegistrationModel
 from models.registration_payment import RegistrationPaymentModel
@@ -12,6 +13,7 @@ from services.qrcode_service import generate_qr_for_user, render_premium_card
 from services.registration_gateways import GatewayError, MSG91Gateway, RazorpayGateway, normalize_mobile
 from models.card_permission import CardPermissionModel
 from models.qr_identity import QRIdentityModel
+from services.subscription_service import SubscriptionService
 import os
 import secrets
 import qrcode
@@ -623,6 +625,7 @@ def _public_registration_handler(user_type, card_user_type=None):
 
         uid = _create_public_user(user_type, full_name, mobile, email, password)
         CardPermissionModel.set_user_card_type(uid, card_user_type or user_type)
+        SubscriptionService.apply_subscription_for_registration(uid, date.today())
         RegistrationPaymentModel.update_attempt(token, user_id=uid, status='registration_created')
         session.pop('registration_payment_token', None)
         session.pop('registration_payment_user_type', None)
@@ -1061,8 +1064,11 @@ def download_pdf():
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
+    subscription = SubscriptionService.get_user_subscription_summary(session['user_id'])
+    if subscription and subscription['is_expired']:
+        flash('Subscription expired. Please contact support to renew access.', 'warning')
     if EmployeeProfileModel.has_employee_profile(session['user_id']) or session.get('user_type') == 'employee':
         return redirect(url_for('employee.employee_dashboard'))
     if StudentProfileModel.has_student_profile(session['user_id']):
         return redirect(url_for('user.student_dashboard'))
-    return render_template('auth/dashboard.html', hide_navbar=True)
+    return render_template('auth/dashboard.html', hide_navbar=True, subscription=subscription)

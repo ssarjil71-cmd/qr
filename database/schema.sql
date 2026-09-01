@@ -214,6 +214,41 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_code VARCHAR(20);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS nationality VARCHAR(100);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS card_user_type VARCHAR(100);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_start_date DATE NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expiry_date DATE NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(30) NOT NULL DEFAULT 'Suspended';
+
+CREATE TABLE IF NOT EXISTS subscription_expiry_audit (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  previous_expiry_date DATE NULL,
+  new_expiry_date DATE NULL,
+  change_reason VARCHAR(100) NOT NULL DEFAULT 'manual_adjustment',
+  changed_by INT NULL,
+  changed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_subscription_expiry_audit_user_id (user_id),
+  KEY idx_subscription_expiry_audit_changed_at (changed_at),
+  CONSTRAINT fk_subscription_expiry_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS subscription_reminder_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  reminder_date DATE NOT NULL,
+  reminder_type VARCHAR(50) NOT NULL DEFAULT 'expiry_warning',
+  notification_channel VARCHAR(50) NOT NULL DEFAULT 'internal',
+  notification_status VARCHAR(30) NOT NULL DEFAULT 'queued',
+  message TEXT NULL,
+  sent_at TIMESTAMP NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_subscription_reminder_daily (user_id, reminder_date, reminder_type),
+  KEY idx_subscription_reminder_logs_user_id (user_id),
+  KEY idx_subscription_reminder_logs_reminder_date (reminder_date),
+  CONSTRAINT fk_subscription_reminder_logs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_users_subscription_start_date ON users (subscription_start_date);
+CREATE INDEX idx_users_subscription_expiry_date ON users (subscription_expiry_date, subscription_status);
 
 CREATE TABLE IF NOT EXISTS organizations (
   id INT AUTO_INCREMENT PRIMARY KEY,

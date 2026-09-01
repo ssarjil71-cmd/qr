@@ -119,7 +119,11 @@ class UserModel:
                 u.user_type,
                 u.is_active,
                 u.created_at,
-                COALESCE(sl.scan_count, 0) * 1024 AS data_usage
+                COALESCE(sl.scan_count, 0) * 1024 AS data_usage,
+                u.subscription_start_date,
+                u.subscription_expiry_date,
+                DATEDIFF(u.subscription_expiry_date, CURRENT_DATE) AS remaining_days,
+                COALESCE(u.subscription_status, 'Suspended') AS subscription_status
             FROM users u
             LEFT JOIN (
                 SELECT user_id, COUNT(*) AS scan_count

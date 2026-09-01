@@ -572,7 +572,10 @@
             <th>Role</th>
             <th>Status</th>
             <th>Data Used</th>
-            <th>Created Date</th>
+            <th>Start</th>
+            <th>Expiry</th>
+            <th>Remaining</th>
+            <th>Subscription</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -600,7 +603,13 @@
               </span>
             </td>
             <td>{{ format_data_usage(u[6]) }}</td>
-            <td class="text-muted">-</td>
+            <td>{{ u[7] if u[7] else '-' }}</td>
+            <td>{{ u[8] if u[8] else '-' }}</td>
+            <td>{{ (u[9] | int) if u[9] is not none else '-' }} days</td>
+            <td>
+              {% set sub_status = u[10] if u[10] else 'Suspended' %}
+              <span class="status-badge {% if sub_status == 'Active' %}badge-active{% elif sub_status == 'Expiring Soon' %}badge-user{% elif sub_status == 'Expired' %}badge-inactive{% else %}badge-admin{% endif %}">{{ sub_status }}</span>
+            </td>
             <td>
               <div class="dropdown text-end">
                 <button class="action-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="User actions">
@@ -609,6 +618,7 @@
                 <ul class="dropdown-menu dropdown-menu-end action-dropdown">
                   <li><a class="dropdown-item" href="#"><i class="bi bi-eye"></i>View user</a></li>
                   <li><a class="dropdown-item" href="{{ url_for('superadmin.manage_user_cards', user_id=u[0]) }}"><i class="bi bi-ui-checks-grid"></i>Card Permissions</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('superadmin.user_subscription', uid=u[0]) }}"><i class="bi bi-calendar3"></i>Subscription</a></li>
                   <li><a class="dropdown-item" href="#"><i class="bi bi-pencil"></i>Edit user</a></li>
                   <li>
                     <a class="dropdown-item" href="{{ url_for('admin.toggle_user', uid=u[0]) }}">

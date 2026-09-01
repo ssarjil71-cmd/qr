@@ -1,6 +1,8 @@
 from flask import Flask, render_template
 from services.db import mysql_init
+from services.subscription_service import SubscriptionService
 import config
+
 
 def create_app():
     app = Flask(__name__)
@@ -27,6 +29,10 @@ def create_app():
     @app.route('/')
     def index():
         return render_template('index.html')
+
+    with app.app_context():
+        SubscriptionService.ensure_schema()
+        SubscriptionService.start_background_jobs(app)
 
     return app
 

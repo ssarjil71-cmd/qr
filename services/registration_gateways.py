@@ -111,6 +111,23 @@ class SurepassGateway:
 
 class MSG91Gateway:
     @staticmethod
+    def send_sms(mobile, message):
+        auth_key = current_app.config.get('MSG91_AUTH_KEY')
+        if not auth_key:
+            raise GatewayError('MSG91 is not configured')
+        mobile = normalize_mobile(mobile)
+        base_url = current_app.config.get('MSG91_OTP_BASE', 'https://control.msg91.com/api/v5/otp').rstrip('/')
+        data = _json_request(
+            f'{base_url}/send',
+            {'message': message, 'mobile': mobile, 'sender': current_app.config.get('MSG91_SENDER_ID', ''), 'route': '4'},
+            headers={'authkey': auth_key},
+            method='POST',
+        )
+        if str(data.get('type', '')).lower() not in ('success', 'successfully'):
+            raise GatewayError(_provider_message(data, 'MSG91 rejected the SMS request'))
+        return {'sent': True, 'raw': data}
+
+    @staticmethod
     def send_otp(mobile):
         auth_key = current_app.config.get('MSG91_AUTH_KEY')
         template_id = current_app.config.get('MSG91_OTP_TEMPLATE_ID')

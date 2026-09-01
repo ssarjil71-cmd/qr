@@ -1,6 +1,8 @@
+from flask import has_app_context
 from flask_mysqldb import MySQL
 
 mysql = MySQL()
+
 
 def mysql_init(app):
     app.config['MYSQL_HOST'] = app.config.get('MYSQL_HOST')
@@ -9,19 +11,19 @@ def mysql_init(app):
     app.config['MYSQL_DB'] = app.config.get('MYSQL_DB')
     mysql.init_app(app)
 
+
 def get_db():
     return mysql
 
-def get_conn():
-    """Return a live DB connection. Tries `mysql.connection`, then `mysql.connect()`.
 
-    Raises RuntimeError with a clear message if the extension was not initialized.
-    """
-    # prefer the exposed connection attribute
+def get_conn():
+    """Return a live DB connection. Must be used inside a Flask app context."""
+    if not has_app_context():
+        raise RuntimeError('Database access attempted outside a Flask application context. Call this inside app.app_context() or a request.')
+
     conn = getattr(mysql, 'connection', None)
     if conn:
         return conn
-    # some versions expose a connect() factory or a Connection object
     maybe = getattr(mysql, 'connect', None)
     if callable(maybe):
         try:

@@ -5,3 +5,4 @@ Werkzeug>=2.0
 qrcode>=7.3
 Pillow>=9.0
 python-dotenv>=1.0
+APScheduler>=3.10.0
