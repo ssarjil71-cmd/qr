@@ -518,7 +518,28 @@ class StudentProfileModel:
     def _get_user(cls, user_id):
         conn, cur = cls._get_conn_and_cursor()
         try:
-            cur.execute('SELECT * FROM users WHERE id=%s', (user_id,))
+            cur.execute(
+                '''
+                SELECT id, user_type, name, mobile, email, password_hash, photo,
+                       education, skills, resume, certificates, company_name,
+                       designation, experience, emergency_contact, blood_group,
+                       medical_notes, address, vehicle_number, qr_token, qr_path,
+                       is_active, reset_token, created_at,
+                       emergency_primary_contact_name,
+                       emergency_primary_contact_relation,
+                       emergency_primary_contact_mobile,
+                       emergency_primary_contact_whatsapp,
+                       emergency_secondary_contact_name,
+                       emergency_secondary_contact_relation,
+                       emergency_secondary_contact_mobile,
+                       emergency_doctor_name, emergency_doctor_phone,
+                       emergency_address, emergency_note, dob, gender, city, state,
+                       pin_code, nationality, district_id, taluka_id
+                FROM users
+                WHERE id=%s
+                ''',
+                (user_id,),
+            )
             row = cur.fetchone()
             return cls._row_to_user_dict(row) if row else None
         finally:
