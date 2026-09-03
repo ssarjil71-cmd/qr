@@ -17,7 +17,7 @@
 
   <div class="section-detail-panel" data-inline-section="{{ section.key }}">
     <div class="section-detail-content" id="section_readonly_{{ section.key }}">
-      {{ detail_rows(section, user, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, social_links=social_links, experiences=experiences, medical_report=medical_report, medicines=medicines, vaccinations=vaccinations, medical_documents=medical_documents, technical_skills=technical_skills, soft_skills=soft_skills, skill_tools=skill_tools, languages=languages) }}
+      {{ detail_rows(section, user, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, social_links=social_links, experiences=experiences, medical_report=medical_report, medicines=medicines, vaccinations=vaccinations, medical_documents=medical_documents, technical_skills=technical_skills, soft_skills=soft_skills, skill_tools=skill_tools, languages=languages, qualifications=qualifications) }}
     </div>
     <div class="section-edit-panel d-none" id="section_edit_form_{{ section.key }}">
       {% include section.form_template %}

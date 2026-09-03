@@ -21,8 +21,8 @@
 
       <div class="premium-user-row">
         <div class="premium-avatar">
-          {% if user[6] %}
-          <img src="{{ url_for('user.uploads', filename=user[6].replace('static/uploads/', '')) }}" alt="{{ user[2] }}">
+          {% if photo_filename %}
+          <img src="{{ url_for('user.uploads', filename=photo_filename) }}" alt="{{ user[2] }}">
           {% else %}
           {{ (user[2] or 'QR')[:2].upper() }}
           {% endif %}

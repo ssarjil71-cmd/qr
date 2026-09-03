@@ -174,6 +174,16 @@ def _normalize_forgot_password_accounts(accounts):
     return normalized
 
 
+@auth_bp.route('/terms')
+def terms_and_conditions():
+    return render_template('auth/terms_and_conditions.html', last_updated='2026-09-02')
+
+
+@auth_bp.route('/privacy-policy')
+def privacy_policy():
+    return render_template('auth/privacy_policy.html', last_updated='2026-09-02')
+
+
 @auth_bp.route('/register/select')
 def register_select():
     return render_template('auth/register_select.html', pricing=RegistrationPaymentModel.list_pricing())
@@ -612,6 +622,7 @@ def _public_registration_handler(user_type, card_user_type=None):
         email = (request.form.get('email') or '').strip()
         password = request.form.get('password') or ''
         confirm_password = request.form.get('confirm_password') or ''
+        terms_accepted = str(request.form.get('terms_accepted') or '').lower() in {'1', 'true', 'yes', 'on'}
 
         if not full_name or not mobile or not email or not password or not confirm_password:
             flash('All fields are required', 'warning')
@@ -619,11 +630,15 @@ def _public_registration_handler(user_type, card_user_type=None):
         if password != confirm_password:
             flash('Password and Confirm Password must match', 'warning')
             return redirect(request.url)
+        if not terms_accepted:
+            flash('Please accept the Terms & Conditions to continue.', 'warning')
+            return redirect(request.url)
         if UserModel.find_by_email(email):
             flash('Email already registered', 'warning')
             return redirect(request.url)
 
         uid = _create_public_user(user_type, full_name, mobile, email, password)
+        UserModel.record_terms_acceptance(uid, UserModel.TERMS_VERSION)
         CardPermissionModel.set_user_card_type(uid, card_user_type or user_type)
         SubscriptionService.apply_subscription_for_registration(uid, date.today())
         RegistrationPaymentModel.update_attempt(token, user_id=uid, status='registration_created')
@@ -991,6 +1006,7 @@ def qr_view():
     if not user[19] or not user[20]:
         UserModel.update_qr(user[0], profile_card['token'], profile_card['path'])
 
+    photo_filename = str(user[6] or '').replace('static/uploads/', '', 1)
     qr_cards = {
         'emergency': {
             'title': 'Emergency QR',
@@ -1013,7 +1029,13 @@ def qr_view():
             'download_pdf': url_for('auth.download_pdf', qr_type='profile'),
         },
     }
-    return render_template('auth/qr_view.html', user=user, qr_cards=qr_cards)
+    return render_template(
+        'auth/qr_view.html',
+        user=user,
+        photo_filename=photo_filename,
+        qr_cards=qr_cards,
+        hide_navbar=True,
+    )
 
 
 @auth_bp.route('/download-png')

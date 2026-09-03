@@ -429,6 +429,170 @@ def settings():
     return render_template('admin/superadmin/settings.html')
 
 
+@superadmin_bp.route('/profile')
+@admin_login_required
+def profile():
+    """Display Super Admin profile page"""
+    uid = session.get('super_admin_id')
+    user = UserModel.find_by_id(uid)
+    if not user:
+        flash('User not found', 'warning')
+        return redirect(url_for('superadmin.dashboard'))
+    
+    # Extract user data from row (user[0]=id, user[1]=user_type, user[2]=name, user[3]=mobile, user[4]=email, user[6]=photo)
+    user_data = {
+        'id': user[0],
+        'name': user[2],
+        'mobile': user[3],
+        'email': user[4],
+        'photo': user[6],
+    }
+    return render_template('admin/superadmin/profile.html', user=user_data)
+
+
+@superadmin_bp.route('/profile/update', methods=['POST'])
+@admin_login_required
+def profile_update():
+    """Update Super Admin profile"""
+    uid = session.get('super_admin_id')
+    import re
+    
+    # Get form data
+    name = (request.form.get('name') or '').strip()
+    email = (request.form.get('email') or '').strip()
+    mobile = (request.form.get('mobile') or '').strip()
+    
+    # Validation
+    if not name:
+        flash('Full name is required', 'danger')
+        return redirect(url_for('superadmin.profile'))
+    
+    if not email:
+        flash('Email address is required', 'danger')
+        return redirect(url_for('superadmin.profile'))
+    
+    # Validate email format
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        flash('Invalid email format', 'danger')
+        return redirect(url_for('superadmin.profile'))
+    
+    # Validate and format mobile number
+    if mobile:
+        # Remove spaces and common formatting characters
+        mobile_clean = re.sub(r'[\s\-().]', '', mobile)
+        
+        # Check if it starts with +91 or just 10 digits
+        if mobile_clean.startswith('+91'):
+            mobile_digits = mobile_clean[3:]
+        elif mobile_clean.startswith('91'):
+            mobile_digits = mobile_clean[2:]
+        else:
+            mobile_digits = mobile_clean
+        
+        # Validate that we have exactly 10 digits
+        if not mobile_digits.isdigit() or len(mobile_digits) != 10:
+            flash('Mobile number must be a valid 10-digit Indian number', 'danger')
+            return redirect(url_for('superadmin.profile'))
+        
+        # Store in standard format: +91XXXXXXXXXX
+        mobile = '+91' + mobile_digits
+    else:
+        mobile = None
+    
+    # Check email duplication (allow same email for current user)
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute('SELECT id FROM users WHERE email=%s AND id!=%s', (email, uid))
+    if cur.fetchone():
+        cur.close()
+        flash('Email address is already registered', 'danger')
+        return redirect(url_for('superadmin.profile'))
+    
+    # Update profile
+    try:
+        cur.execute('UPDATE users SET name=%s, email=%s, mobile=%s WHERE id=%s', (name, email, mobile, uid))
+        conn.commit()
+        
+        # Update session
+        session['user_name'] = name
+        session.modified = True
+        
+        cur.close()
+        flash('Profile updated successfully', 'success')
+    except Exception as e:
+        cur.close()
+        flash('Failed to update profile. Please try again.', 'danger')
+    
+    return redirect(url_for('superadmin.profile'))
+
+
+@superadmin_bp.route('/change-password')
+@admin_login_required
+def change_password():
+    """Display change password page"""
+    return render_template('admin/superadmin/change_password.html')
+
+
+@superadmin_bp.route('/change-password', methods=['POST'])
+@admin_login_required
+def change_password_post():
+    """Process password change"""
+    uid = session.get('super_admin_id')
+    
+    # Get form data
+    current_password = request.form.get('current_password') or ''
+    new_password = request.form.get('new_password') or ''
+    confirm_password = request.form.get('confirm_password') or ''
+    
+    # Validation
+    if not current_password:
+        flash('Current password is required', 'danger')
+        return redirect(url_for('superadmin.change_password'))
+    
+    if not new_password:
+        flash('New password is required', 'danger')
+        return redirect(url_for('superadmin.change_password'))
+    
+    if not confirm_password:
+        flash('Password confirmation is required', 'danger')
+        return redirect(url_for('superadmin.change_password'))
+    
+    # Check password match
+    if new_password != confirm_password:
+        flash('New password and confirmation do not match', 'danger')
+        return redirect(url_for('superadmin.change_password'))
+    
+    # Check minimum password length
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters long', 'danger')
+        return redirect(url_for('superadmin.change_password'))
+    
+    # Verify current password
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute('SELECT password_hash FROM users WHERE id=%s', (uid,))
+    row = cur.fetchone()
+    
+    if not row or not check_password_hash(row[0], current_password):
+        cur.close()
+        flash('Current password is incorrect', 'danger')
+        return redirect(url_for('superadmin.change_password'))
+    
+    # Update password
+    try:
+        from werkzeug.security import generate_password_hash
+        new_hash = generate_password_hash(new_password)
+        cur.execute('UPDATE users SET password_hash=%s WHERE id=%s', (new_hash, uid))
+        conn.commit()
+        cur.close()
+        flash('Password changed successfully', 'success')
+        return redirect(url_for('superadmin.profile'))
+    except Exception as e:
+        cur.close()
+        flash('Failed to change password. Please try again.', 'danger')
+        return redirect(url_for('superadmin.change_password'))
+
+
 @superadmin_bp.route('/organizations/<int:org_id>/branches/create', methods=['GET', 'POST'])
 @admin_login_required
 def branch_create(org_id):

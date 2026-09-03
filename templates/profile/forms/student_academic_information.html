@@ -9,3 +9,82 @@
 <form method="post" action="{{ url_for('user.delete_student_academic_information') }}" class="mt-2">
   <button class="btn btn-outline-danger" type="submit">Delete</button>
 </form>
+
+<section class="mt-4" aria-labelledby="qualifications-title">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      <h5 id="qualifications-title" class="mb-1">Previous / Additional Qualifications</h5>
+      <p class="text-muted small mb-0">Add qualifications completed before or alongside your current course.</p>
+    </div>
+    <button class="btn btn-outline-primary" type="button" data-add-qualification>Add Qualification</button>
+  </div>
+
+  <div class="qualification-list" data-qualification-list>
+    {% for qualification in qualifications or [] %}
+    <div class="card mb-3 qualification-card" data-qualification-card>
+      <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+          <h6 class="mb-0">Qualification {{ loop.index }}</h6>
+          <span class="badge text-bg-light">{{ qualification.qualification_type or 'Qualification' }}</span>
+        </div>
+        <form method="post" action="{{ url_for('user.update_student_qualification', qualification_id=qualification.id) }}" class="row g-3">
+          {% include 'profile/forms/_student_qualification_fields.html' %}
+          <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
+        </form>
+        <form method="post" action="{{ url_for('user.delete_student_qualification', qualification_id=qualification.id) }}" class="mt-2">
+          <button class="btn btn-outline-danger btn-sm" type="submit">Remove</button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-muted small mb-0" data-empty-qualifications>No previous qualifications added yet.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<template id="qualification-card-template">
+  <div class="card mb-3 qualification-card" data-qualification-card data-new-qualification>
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h6 class="mb-0">New Qualification</h6>
+      </div>
+      <form method="post" action="{{ url_for('user.add_student_qualification') }}" class="row g-3">
+        {% include 'profile/forms/_student_qualification_fields.html' %}
+        <div class="col-12 d-flex flex-wrap gap-2">
+          <button class="btn btn-primary" type="submit">Save</button>
+          <button class="btn btn-outline-danger" type="button" data-remove-qualification>Remove</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var addButton = document.querySelector('[data-add-qualification]');
+    var list = document.querySelector('[data-qualification-list]');
+    var template = document.querySelector('#qualification-card-template');
+    if (!addButton || !list || !template) return;
+
+    addButton.addEventListener('click', function () {
+      var emptyState = list.querySelector('[data-empty-qualifications]');
+      if (emptyState) emptyState.remove();
+      list.appendChild(template.content.cloneNode(true));
+      list.lastElementChild.querySelector('input, select').focus();
+    });
+
+    list.addEventListener('click', function (event) {
+      var removeButton = event.target.closest('[data-remove-qualification]');
+      if (removeButton) removeButton.closest('[data-qualification-card]').remove();
+    });
+
+    var cancelButton = document.querySelector('[data-inline-cancel]');
+    if (cancelButton) {
+      cancelButton.addEventListener('click', function () {
+        list.querySelectorAll('[data-new-qualification]').forEach(function (card) {
+          card.remove();
+        });
+      });
+    }
+  });
+</script>

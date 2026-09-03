@@ -10,6 +10,7 @@ from models.student_profile import (
     CertificateModel,
     DocumentModel,
     ProjectModel,
+    QualificationModel,
     ResumeProfileModel,
     SocialLinkModel,
     StudentProfileModel,
@@ -469,6 +470,61 @@ def update_student_academic_information():
         flash('Academic Information saved successfully', 'success')
     else:
         flash(message, 'warning')
+    return redirect(url_for('user.student_section_detail', section_key='academic_information'))
+
+
+def _qualification_payload():
+    return {
+        'qualification': request.form.get('qualification', '').strip(),
+        'specialization': request.form.get('specialization', '').strip(),
+        'institution': request.form.get('institution', '').strip(),
+        'board_university': request.form.get('board_university', '').strip(),
+        'passing_year': request.form.get('passing_year', '').strip(),
+        'percentage_cgpa': request.form.get('percentage_cgpa', '').strip(),
+        'grade_class': request.form.get('grade_class', '').strip(),
+        'qualification_type': request.form.get('qualification_type', '').strip(),
+    }
+
+
+@user_bp.route('/student/profile/qualifications', methods=['POST'])
+@login_required
+@card_permission_required('academic_information')
+def add_student_qualification():
+    user_id = session.get('user_id')
+    payload = _qualification_payload()
+    if not payload['qualification'] or not payload['institution']:
+        flash('Qualification and institution are required', 'warning')
+    elif QualificationModel.add_previous_qualification(user_id, payload):
+        flash('Qualification added successfully', 'success')
+    else:
+        flash('Student profile is not available for this account', 'warning')
+    return redirect(url_for('user.student_section_detail', section_key='academic_information'))
+
+
+@user_bp.route('/student/profile/qualifications/<int:qualification_id>', methods=['POST'])
+@login_required
+@card_permission_required('academic_information')
+def update_student_qualification(qualification_id):
+    user_id = session.get('user_id')
+    payload = _qualification_payload()
+    if not payload['qualification'] or not payload['institution']:
+        flash('Qualification and institution are required', 'warning')
+    elif QualificationModel.update_previous_qualification(user_id, qualification_id, payload):
+        flash('Qualification updated successfully', 'success')
+    else:
+        flash('Qualification not found', 'warning')
+    return redirect(url_for('user.student_section_detail', section_key='academic_information'))
+
+
+@user_bp.route('/student/profile/qualifications/<int:qualification_id>/delete', methods=['POST'])
+@login_required
+@card_permission_required('academic_information')
+def delete_student_qualification(qualification_id):
+    user_id = session.get('user_id')
+    if QualificationModel.delete_previous_qualification(user_id, qualification_id):
+        flash('Qualification deleted successfully', 'success')
+    else:
+        flash('Qualification not found', 'warning')
     return redirect(url_for('user.student_section_detail', section_key='academic_information'))
 
 

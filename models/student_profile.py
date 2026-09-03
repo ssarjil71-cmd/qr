@@ -57,6 +57,94 @@ class StudentProfileModel:
             )
             cur.execute(
                 '''
+                CREATE TABLE IF NOT EXISTS student_qualifications (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    student_profile_id INT NOT NULL,
+                    qualification VARCHAR(255) NOT NULL,
+                    specialization VARCHAR(255) NULL,
+                    institution VARCHAR(255) NOT NULL,
+                    board_university VARCHAR(255) NULL,
+                    passing_year INT NULL,
+                    percentage_cgpa VARCHAR(100) NULL,
+                    grade_class VARCHAR(100) NULL,
+                    qualification_type VARCHAR(100) NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    KEY idx_student_qualifications_profile_id (student_profile_id),
+                    CONSTRAINT fk_student_qualifications_profile
+                        FOREIGN KEY (student_profile_id) REFERENCES student_profiles(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                '''
+            )
+            cur.execute('SHOW COLUMNS FROM student_qualifications')
+            qualification_columns = {row[0] for row in cur.fetchall()}
+            required_qualification_columns = {
+                'student_profile_id': 'INT NULL',
+                'qualification': 'VARCHAR(255) NULL',
+                'specialization': 'VARCHAR(255) NULL',
+                'institution': 'VARCHAR(255) NULL',
+                'board_university': 'VARCHAR(255) NULL',
+                'passing_year': 'INT NULL',
+                'percentage_cgpa': 'VARCHAR(100) NULL',
+                'grade_class': 'VARCHAR(100) NULL',
+                'qualification_type': 'VARCHAR(100) NULL',
+            }
+            for column_name, column_type in required_qualification_columns.items():
+                if column_name not in qualification_columns:
+                    cur.execute(
+                        f'ALTER TABLE student_qualifications ADD COLUMN {column_name} {column_type}'
+                    )
+            if 'user_id' in qualification_columns:
+                cur.execute(
+                    '''
+                    UPDATE student_qualifications q
+                    INNER JOIN student_profiles p ON p.user_id=q.user_id
+                    SET q.student_profile_id=p.id
+                    WHERE q.student_profile_id IS NULL
+                    '''
+                )
+            if 'school_college_university' in qualification_columns:
+                cur.execute(
+                    '''
+                    UPDATE student_qualifications
+                    SET institution=school_college_university
+                    WHERE institution IS NULL
+                    '''
+                )
+            if 'stream_specialization' in qualification_columns:
+                cur.execute(
+                    '''
+                    UPDATE student_qualifications
+                    SET specialization=stream_specialization
+                    WHERE specialization IS NULL
+                    '''
+                )
+            if 'grade' in qualification_columns:
+                cur.execute(
+                    '''
+                    UPDATE student_qualifications
+                    SET grade_class=grade
+                    WHERE grade_class IS NULL
+                    '''
+                )
+            if 'user_id' in qualification_columns:
+                cur.execute(
+                    '''
+                    SELECT CONSTRAINT_NAME
+                    FROM information_schema.KEY_COLUMN_USAGE
+                    WHERE TABLE_SCHEMA=DATABASE()
+                      AND TABLE_NAME='student_qualifications'
+                      AND COLUMN_NAME='user_id'
+                      AND REFERENCED_TABLE_NAME='users'
+                    '''
+                )
+                for (constraint_name,) in cur.fetchall():
+                    cur.execute(
+                        f'ALTER TABLE student_qualifications DROP FOREIGN KEY `{constraint_name}`'
+                    )
+                cur.execute('ALTER TABLE student_qualifications DROP COLUMN user_id')
+            cur.execute(
+                '''
                 CREATE TABLE IF NOT EXISTS documents (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     user_id INT NOT NULL,
@@ -336,6 +424,10 @@ class StudentProfileModel:
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 '''
             )
+            cur.execute('SHOW COLUMNS FROM student_profiles')
+            student_profile_columns = {row[0] for row in cur.fetchall()}
+            if 'passing_year' in student_profile_columns:
+                cur.execute('ALTER TABLE student_profiles DROP COLUMN passing_year')
             conn.commit()
         finally:
             cur.close()
@@ -492,7 +584,8 @@ class StudentProfileModel:
             cur.execute(
                 '''
                 SELECT id, user_id, organization_id, branch_id, department_id, college,
-                       academic_branch, academic_year, roll_number, bio, created_at, updated_at
+                        academic_branch, academic_year, roll_number, bio,
+                      created_at, updated_at
                 FROM student_profiles
                 WHERE user_id=%s
                 LIMIT 1
@@ -1087,6 +1180,7 @@ class StudentProfileModel:
         soft_skills = cls._list_soft_skills(user_id)
         skill_tools = cls._list_skill_tools(user_id)
         languages = cls._list_languages(user_id)
+        qualifications = QualificationModel.get_previous_qualifications(user_id)
         sections = cls._build_sections(
             user=user,
             student_profile=student_profile,
@@ -1124,6 +1218,7 @@ class StudentProfileModel:
             'soft_skills': soft_skills,
             'skill_tools': skill_tools,
             'languages': languages,
+            'qualifications': qualifications,
             'sections': sections,
             'visible_section_keys': visible_section_keys,
             'overall_completion': overall_completion,
@@ -1204,7 +1299,7 @@ class StudentProfileModel:
                         payload.get('college'),
                         payload.get('branch'),
                         payload.get('year'),
-                        payload.get('roll_number'),
+                                payload.get('roll_number'),
                         payload.get('bio'),
                     ),
                 )
@@ -1219,6 +1314,14 @@ class StudentProfileModel:
         cls.ensure_tables()
         conn, cur = cls._get_conn_and_cursor()
         try:
+            cur.execute(
+                '''
+                DELETE q FROM student_qualifications q
+                INNER JOIN student_profiles p ON p.id=q.student_profile_id
+                WHERE p.user_id=%s
+                ''',
+                (user_id,),
+            )
             cur.execute('DELETE FROM student_profiles WHERE user_id=%s', (user_id,))
             cur.execute('UPDATE users SET education=NULL WHERE id=%s', (user_id,))
             conn.commit()
@@ -1489,6 +1592,135 @@ class StudentProfileModel:
         try:
             cur.execute('UPDATE users SET resume=%s WHERE id=%s', (legacy_value, user_id))
             conn.commit()
+        finally:
+            cur.close()
+
+
+class QualificationModel:
+    @staticmethod
+    def _profile_id(user_id, cur):
+        cur.execute('SELECT id FROM student_profiles WHERE user_id=%s LIMIT 1', (user_id,))
+        row = cur.fetchone()
+        return row[0] if row else None
+
+    @classmethod
+    def get_previous_qualifications(cls, user_id):
+        StudentProfileModel.ensure_tables()
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT q.id, q.qualification, q.specialization, q.institution,
+                       q.board_university, q.passing_year, q.percentage_cgpa,
+                       q.grade_class, q.qualification_type, q.created_at, q.updated_at
+                FROM student_qualifications q
+                INNER JOIN student_profiles p ON p.id=q.student_profile_id
+                WHERE p.user_id=%s
+                ORDER BY q.passing_year DESC, q.created_at DESC, q.id DESC
+                ''',
+                (user_id,),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    'id': row[0],
+                    'qualification': row[1],
+                    'specialization': row[2],
+                    'institution': row[3],
+                    'board_university': row[4],
+                    'passing_year': row[5],
+                    'percentage_cgpa': row[6],
+                    'grade_class': row[7],
+                    'qualification_type': row[8],
+                    'created_at': row[9],
+                    'updated_at': row[10],
+                }
+                for row in rows
+            ]
+        finally:
+            cur.close()
+
+    @classmethod
+    def add_previous_qualification(cls, user_id, payload):
+        StudentProfileModel.ensure_tables()
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            profile_id = cls._profile_id(user_id, cur)
+            if not profile_id:
+                return False
+            cur.execute(
+                '''
+                INSERT INTO student_qualifications (
+                    student_profile_id, qualification, specialization, institution,
+                    board_university, passing_year, percentage_cgpa, grade_class, qualification_type
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''',
+                (
+                    profile_id,
+                    payload.get('qualification'),
+                    payload.get('specialization'),
+                    payload.get('institution'),
+                    payload.get('board_university'),
+                    payload.get('passing_year') or None,
+                    payload.get('percentage_cgpa'),
+                    payload.get('grade_class'),
+                    payload.get('qualification_type'),
+                ),
+            )
+            conn.commit()
+            return True
+        finally:
+            cur.close()
+
+    @classmethod
+    def update_previous_qualification(cls, user_id, qualification_id, payload):
+        StudentProfileModel.ensure_tables()
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                UPDATE student_qualifications q
+                INNER JOIN student_profiles p ON p.id=q.student_profile_id
+                SET q.qualification=%s, q.specialization=%s, q.institution=%s,
+                    q.board_university=%s, q.passing_year=%s, q.percentage_cgpa=%s,
+                    q.grade_class=%s, q.qualification_type=%s
+                WHERE q.id=%s AND p.user_id=%s
+                ''',
+                (
+                    payload.get('qualification'),
+                    payload.get('specialization'),
+                    payload.get('institution'),
+                    payload.get('board_university'),
+                    payload.get('passing_year') or None,
+                    payload.get('percentage_cgpa'),
+                    payload.get('grade_class'),
+                    payload.get('qualification_type'),
+                    qualification_id,
+                    user_id,
+                ),
+            )
+            changed = cur.rowcount > 0
+            conn.commit()
+            return changed
+        finally:
+            cur.close()
+
+    @classmethod
+    def delete_previous_qualification(cls, user_id, qualification_id):
+        StudentProfileModel.ensure_tables()
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                DELETE q FROM student_qualifications q
+                INNER JOIN student_profiles p ON p.id=q.student_profile_id
+                WHERE q.id=%s AND p.user_id=%s
+                ''',
+                (qualification_id, user_id),
+            )
+            deleted = cur.rowcount > 0
+            conn.commit()
+            return deleted
         finally:
             cur.close()
 

@@ -1,0 +1,363 @@
+{% extends 'admin/superadmin/layout.html' %}
+{% block superadmin_content %}
+
+<style>
+  .profile-page {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .profile-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .profile-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .profile-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .profile-card {
+    background: var(--card-bg);
+    border-radius: var(--card-radius);
+    padding: 28px;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .form-control-static {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    padding: 0 16px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--button-radius);
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .form-control {
+    display: block;
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--button-radius);
+    font-size: 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: var(--transition-fast);
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    justify-content: center;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 48px;
+    padding: 0 32px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--button-radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(37, 99, 235, 0.28);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 48px;
+    padding: 0 32px;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--button-radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-decoration: none;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+  }
+
+  .profile-info-display {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .profile-info-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+  }
+
+  .profile-info-row:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .profile-info-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .profile-info-value {
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .view-mode {
+    display: block;
+  }
+
+  .view-mode.hidden {
+    display: none;
+  }
+
+  .edit-mode {
+    display: none;
+  }
+
+  .edit-mode.active {
+    display: block;
+  }
+
+  .alert {
+    padding: 16px 20px;
+    border-radius: var(--button-radius);
+    margin-bottom: 20px;
+    font-size: 14px;
+    border-left: 4px solid;
+  }
+
+  .alert-success {
+    background-color: #ECFDF5;
+    border-color: #10B981;
+    color: #047857;
+  }
+
+  .alert-danger {
+    background-color: #FEF2F2;
+    border-color: #EF4444;
+    color: #991B1B;
+  }
+
+  .alert-info {
+    background-color: #EFF6FF;
+    border-color: #3B82F6;
+    color: #1E40AF;
+  }
+
+  @media (max-width: 768px) {
+    .profile-card {
+      padding: 20px;
+    }
+
+    .profile-title {
+      font-size: 24px;
+    }
+
+    .form-actions {
+      flex-direction: column-reverse;
+    }
+
+    .btn-primary, .btn-secondary {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="profile-page" id="profile-page">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="profile-header">
+    <div class="profile-title">{{ user.name }}</div>
+    <div class="profile-subtitle">Super Admin Account</div>
+  </div>
+
+  <!-- VIEW MODE -->
+  <div class="profile-card view-mode" id="view-mode">
+    <div class="profile-info-display">
+      <div class="profile-info-row">
+        <div class="profile-info-label">Full Name</div>
+        <div class="profile-info-value" id="display-name">{{ user.name }}</div>
+      </div>
+
+      <div class="profile-info-row">
+        <div class="profile-info-label">Email Address</div>
+        <div class="profile-info-value" id="display-email">{{ user.email }}</div>
+      </div>
+
+      <div class="profile-info-row">
+        <div class="profile-info-label">Mobile Number</div>
+        <div class="profile-info-value" id="display-mobile">{{ user.mobile or 'Not provided' }}</div>
+      </div>
+
+      <div class="profile-info-row">
+        <div class="profile-info-label">Account Role</div>
+        <div class="profile-info-value">Super Admin</div>
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top: 28px; justify-content: center;">
+      <button type="button" class="btn-primary" id="edit-btn" onclick="toggleEditMode()">
+        <i class="bi bi-pencil"></i> Edit Profile
+      </button>
+    </div>
+  </div>
+
+  <!-- EDIT MODE -->
+  <div class="profile-card edit-mode" id="edit-mode">
+    <form method="POST" action="{{ url_for('superadmin.profile_update') }}" id="profile-form">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="name" class="form-control" id="edit-name" value="{{ user.name }}" required placeholder="Enter your full name">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" name="email" class="form-control" id="edit-email" value="{{ user.email }}" required placeholder="Enter your email address">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Mobile Number</label>
+        <input type="tel" name="mobile" class="form-control" id="edit-mobile" value="{{ user.mobile or '' }}" placeholder="Enter your mobile number (e.g., +91 9876543210)">
+        <small style="display: block; margin-top: 6px; color: var(--text-secondary); font-size: 12px;">Indian mobile number (10 digits), optional +91 prefix</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Account Role</label>
+        <div class="form-control-static">Super Admin</div>
+        <small style="display: block; margin-top: 6px; color: var(--text-secondary); font-size: 12px;">Role cannot be changed</small>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" onclick="cancelEdit()">
+          <i class="bi bi-x-lg"></i> Cancel
+        </button>
+        <button type="submit" class="btn-primary">
+          <i class="bi bi-check-lg"></i> Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="profile-card" style="background-color: #F8FAFC; border: 1px solid var(--border-color);">
+    <div style="margin-bottom: 16px;">
+      <div class="form-label">Change Password</div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Manage your account security by updating your password.</p>
+    </div>
+    <a href="{{ url_for('superadmin.change_password') }}" class="btn-primary" style="display: inline-flex;">
+      <i class="bi bi-shield-lock"></i> Change Password
+    </a>
+  </div>
+</div>
+
+<script>
+  const originalName = "{{ user.name }}";
+  const originalEmail = "{{ user.email }}";
+  const originalMobile = "{{ user.mobile or '' }}";
+
+  function toggleEditMode() {
+    const viewMode = document.getElementById('view-mode');
+    const editMode = document.getElementById('edit-mode');
+    
+    viewMode.classList.add('hidden');
+    editMode.classList.add('active');
+    
+    // Focus on the name field
+    document.getElementById('edit-name').focus();
+  }
+
+  function cancelEdit() {
+    const viewMode = document.getElementById('view-mode');
+    const editMode = document.getElementById('edit-mode');
+    const nameInput = document.getElementById('edit-name');
+    const emailInput = document.getElementById('edit-email');
+    const mobileInput = document.getElementById('edit-mobile');
+    
+    // Restore original values
+    nameInput.value = originalName;
+    emailInput.value = originalEmail;
+    mobileInput.value = originalMobile;
+    
+    // Switch back to view mode
+    editMode.classList.remove('active');
+    viewMode.classList.remove('hidden');
+  }
+
+  // Handle form submission - after redirect back, we'll be in view mode
+  document.getElementById('profile-form').addEventListener('submit', function(e) {
+    // Form will submit normally and redirect, page will reload in view mode
+  });
+</script>
+
+{% endblock %}

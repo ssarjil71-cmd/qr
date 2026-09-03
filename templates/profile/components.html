@@ -1,5 +1,6 @@
-{% macro profile_header(profile_dashboard_title, profile_dashboard_description, user, overall_completion) %}
+{% macro profile_header(profile_dashboard_title, profile_dashboard_description, user, overall_completion, show_dashboard_nav=True) %}
 <div class="profile-dashboard-shell">
+  {% if show_dashboard_nav %}
   <aside class="profile-dashboard-sidebar" id="profile-dashboard-sidebar" aria-label="Dashboard menu">
     <div class="profile-dashboard-sidebar-header">Menu</div>
     <nav class="profile-dashboard-sidebar-nav" aria-label="Dashboard navigation">
@@ -8,16 +9,33 @@
       <a href="{{ url_for('auth.logout') }}">Logout</a>
     </nav>
   </aside>
+  {% endif %}
 
   <div class="profile-dashboard-main">
     <div class="card profile-summary-card mb-4">
       <div class="card-body">
+        {% if show_dashboard_nav %}
         <div class="profile-summary-header">
           <button class="profile-dashboard-menu-toggle" type="button" aria-label="Toggle dashboard menu" aria-controls="profile-dashboard-sidebar" data-profile-menu-toggle>
             <i class="bi bi-list"></i>
             <span>Menu</span>
           </button>
         </div>
+        {% endif %}
+        {% if not show_dashboard_nav %}
+        <div class="profile-summary-topbar">
+          <div class="profile-summary-actions">
+            <a class="btn profile-summary-action-btn profile-summary-primary" href="{{ url_for('auth.qr_view') }}">
+              <i class="bi bi-qr-code"></i>
+              <span>View QR</span>
+            </a>
+            <a class="btn profile-summary-action-btn profile-summary-secondary" href="{{ url_for('auth.logout') }}">
+              <i class="bi bi-box-arrow-right"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+        </div>
+        {% endif %}
         <div class="row align-items-center g-3">
           <div class="col-md-2">
             {% if user.photo %}
@@ -74,7 +92,7 @@
 </div>
 {% endmacro %}
 
-{% macro detail_rows(section, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None) %}
+{% macro detail_rows(section, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None, qualifications=None) %}
 {% if section.key == 'basic_information' %}
   <div class="detail-row"><span>Name</span><strong>{{ user.name or '-' }}</strong></div>
   <div class="detail-row"><span>Mobile</span><strong>{{ user.mobile or '-' }}</strong></div>
@@ -88,6 +106,23 @@
   <div class="detail-row"><span>Year</span><strong>{{ student_profile.get('year', '-') or '-' }}</strong></div>
   <div class="detail-row"><span>Roll Number</span><strong>{{ student_profile.get('roll_number', '-') or '-' }}</strong></div>
   <div class="detail-row"><span>Bio</span><strong>{{ student_profile.get('bio', '-') or '-' }}</strong></div>
+  {% if qualifications %}
+  <div class="detail-section"><span class="detail-section-title">Previous / Additional Qualifications</span></div>
+  {% for qualification in qualifications %}
+  <div class="qualification-detail-card">
+    <div class="qualification-detail-heading">
+      <strong>{{ qualification.qualification or '-' }}</strong>
+      <span>{{ qualification.qualification_type or 'Qualification' }}</span>
+    </div>
+    {% if qualification.specialization %}<div class="detail-row"><span>Specialization / Branch</span><strong>{{ qualification.specialization }}</strong></div>{% endif %}
+    <div class="detail-row"><span>Institution</span><strong>{{ qualification.institution or '-' }}</strong></div>
+    {% if qualification.board_university %}<div class="detail-row"><span>Board / University</span><strong>{{ qualification.board_university }}</strong></div>{% endif %}
+    {% if qualification.passing_year %}<div class="detail-row"><span>Passing Year</span><strong>{{ qualification.passing_year }}</strong></div>{% endif %}
+    {% if qualification.percentage_cgpa %}<div class="detail-row"><span>Percentage / CGPA</span><strong>{{ qualification.percentage_cgpa }}</strong></div>{% endif %}
+    {% if qualification.grade_class %}<div class="detail-row"><span>Grade / Class</span><strong>{{ qualification.grade_class }}</strong></div>{% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
 {% elif section.key == 'emergency_contact' %}
   <div class="detail-section"><span class="detail-section-title">Primary Contact</span></div>
   <div class="detail-row"><span>Name</span><strong>{{ user.emergency_primary_contact_name or '-' }}</strong></div>

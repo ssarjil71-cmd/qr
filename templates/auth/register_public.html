@@ -10,7 +10,7 @@
       {% else %}
       <p class="text-muted mb-4">Complete your details to continue.</p>
       {% endif %}
-      <form method="post">
+      <form method="post" id="registrationForm" novalidate>
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Full Name</label>
@@ -44,19 +44,40 @@
           </div>
           <div class="col-12">
             <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="terms" required>
-              <label class="form-check-label" for="terms">Accept Terms & Conditions</label>
+              <input class="form-check-input" type="checkbox" id="terms" name="terms_accepted" required>
+              <label class="form-check-label" for="terms">
+                I agree to the <button type="button" class="btn btn-link p-0 align-baseline legal-link" data-legal-target="terms">Terms & Conditions</button> and <button type="button" class="btn btn-link p-0 align-baseline legal-link" data-legal-target="privacy">Privacy Policy</button>
+              </label>
             </div>
           </div>
         </div>
         <div class="mt-4 d-flex justify-content-between">
           <a class="btn btn-outline-secondary" href="{{ url_for('auth.register_select') }}">Back</a>
-          <button class="btn btn-primary" type="submit">Complete Registration</button>
+          <button class="btn btn-primary" type="submit" id="submitRegistration" disabled>Complete Registration</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+<div class="legal-modal-backdrop" id="legalModalBackdrop" aria-hidden="true">
+  <div class="legal-modal" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+    <div class="legal-modal-header">
+      <h4 id="legalModalTitle" class="mb-0">Legal Information</h4>
+      <button type="button" class="legal-modal-close" aria-label="Close">×</button>
+    </div>
+    <div class="legal-modal-body">
+      <div class="legal-modal-content" id="legalModalContent">
+        <div id="termsContent" class="legal-panel d-none">
+          {% include 'auth/_terms_content.html' %}
+        </div>
+        <div id="privacyContent" class="legal-panel d-none">
+          {% include 'auth/_privacy_content.html' %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   document.querySelectorAll('.toggle-password').forEach((button) => {
     button.addEventListener('click', () => {
@@ -69,5 +90,96 @@
       button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
     });
   });
+
+  const registrationForm = document.getElementById('registrationForm');
+  const termsCheckbox = document.getElementById('terms');
+  const submitButton = document.getElementById('submitRegistration');
+  const modalBackdrop = document.getElementById('legalModalBackdrop');
+  const modalTitle = document.getElementById('legalModalTitle');
+  const modalPanels = {
+    terms: document.getElementById('termsContent'),
+    privacy: document.getElementById('privacyContent')
+  };
+
+  function isFormValid() {
+    const requiredFields = registrationForm.querySelectorAll('[required]');
+    for (const field of requiredFields) {
+      if (field.type === 'checkbox') {
+        if (!field.checked) return false;
+        continue;
+      }
+      if (!field.value.trim()) return false;
+    }
+    return true;
+  }
+
+  function updateSubmitState() {
+    const shouldEnable = termsCheckbox.checked && isFormValid();
+    submitButton.disabled = !shouldEnable;
+  }
+
+  function openLegalModal(type) {
+    Object.entries(modalPanels).forEach(([key, panel]) => {
+      panel.classList.toggle('d-none', key !== type);
+    });
+    modalBackdrop.classList.add('is-open');
+    modalBackdrop.setAttribute('aria-hidden', 'false');
+    modalTitle.textContent = type === 'terms' ? 'Terms & Conditions' : 'Privacy Policy';
+  }
+
+  function closeLegalModal() {
+    modalBackdrop.classList.remove('is-open');
+    modalBackdrop.setAttribute('aria-hidden', 'true');
+  }
+
+  document.querySelectorAll('.legal-link').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      openLegalModal(link.dataset.legalTarget);
+    });
+  });
+
+  document.querySelector('.legal-modal-close').addEventListener('click', closeLegalModal);
+  modalBackdrop.addEventListener('click', (event) => {
+    if (event.target === modalBackdrop) {
+      closeLegalModal();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && modalBackdrop.classList.contains('is-open')) {
+      closeLegalModal();
+    }
+  });
+
+  registrationForm.querySelectorAll('input, select, textarea').forEach((field) => {
+    field.addEventListener('input', updateSubmitState);
+    field.addEventListener('change', updateSubmitState);
+  });
+
+  termsCheckbox.addEventListener('change', updateSubmitState);
+
+  registrationForm.addEventListener('submit', function (event) {
+    if (!termsCheckbox.checked) {
+      event.preventDefault();
+      const message = 'Please accept the Terms & Conditions to continue.';
+      const existing = document.querySelector('.terms-alert');
+      if (existing) existing.remove();
+      const alert = document.createElement('div');
+      alert.className = 'alert alert-warning terms-alert mt-3';
+      alert.textContent = message;
+      registrationForm.insertBefore(alert, registrationForm.firstChild);
+      termsCheckbox.focus();
+      return;
+    }
+
+    if (!isFormValid()) {
+      event.preventDefault();
+      const firstInvalid = registrationForm.querySelector('[required]:not(:checked):not(:optional)');
+      if (firstInvalid) firstInvalid.focus();
+    }
+  });
+
+  updateSubmitState();
 </script>
 {% endblock %}

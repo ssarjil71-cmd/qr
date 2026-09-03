@@ -101,4 +101,10 @@ def emergency(token):
         'emergency_address': user_row[33] if len(user_row) > 33 else None,
         'emergency_note': user_row[34] if len(user_row) > 34 else None,
     }
-    return render_template('qr/emergency_public.html', user=user, hide_navbar=True)
+    photo_filename = str(user.get('photo') or '').replace('static/uploads/', '', 1)
+    return render_template(
+        'qr/emergency_public.html',
+        user=user,
+        photo_filename=photo_filename,
+        hide_navbar=True,
+    )

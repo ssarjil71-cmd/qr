@@ -6,6 +6,37 @@ from models.card_permission import CardPermissionModel
 
 class UserModel:
     MANAGED_USER_TYPES = ('student', 'employee', 'emergency', 'freelancer', 'visitor', 'citizen')
+    TERMS_VERSION = '2026-09-02'
+
+    @staticmethod
+    def ensure_terms_columns():
+        db_conn, cur = UserModel._get_conn_and_cursor()
+        try:
+            cur.execute("SHOW COLUMNS FROM users LIKE 'terms_accepted'")
+            if not cur.fetchone():
+                cur.execute('ALTER TABLE users ADD COLUMN terms_accepted TINYINT(1) NOT NULL DEFAULT 0 AFTER email')
+            cur.execute("SHOW COLUMNS FROM users LIKE 'terms_accepted_at'")
+            if not cur.fetchone():
+                cur.execute('ALTER TABLE users ADD COLUMN terms_accepted_at TIMESTAMP NULL AFTER terms_accepted')
+            cur.execute("SHOW COLUMNS FROM users LIKE 'terms_version'")
+            if not cur.fetchone():
+                cur.execute('ALTER TABLE users ADD COLUMN terms_version VARCHAR(50) NULL AFTER terms_accepted_at')
+            db_conn.commit()
+        finally:
+            cur.close()
+
+    @staticmethod
+    def record_terms_acceptance(user_id, version=None):
+        UserModel.ensure_terms_columns()
+        db_conn, cur = UserModel._get_conn_and_cursor()
+        try:
+            cur.execute(
+                'UPDATE users SET terms_accepted=%s, terms_accepted_at=NOW(), terms_version=%s WHERE id=%s',
+                (1, version or UserModel.TERMS_VERSION, user_id),
+            )
+            db_conn.commit()
+        finally:
+            cur.close()
 
     @staticmethod
     def _get_conn_and_cursor():

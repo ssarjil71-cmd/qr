@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% from 'profile/components.html' import profile_header, section_card, section_visibility_script %}
 {% block content %}
-{{ profile_header(profile_dashboard_title, profile_dashboard_description, user, overall_completion) }}
+{{ profile_header(profile_dashboard_title, profile_dashboard_description, user, overall_completion, show_dashboard_nav=False) }}
 <div class="row g-3 profile-section-grid">
   {% for section in profile_sections %}
     {{ section_card(section, profile_type, user, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, social_links=social_links, experiences=experiences, medical_report=medical_report, medicines=medicines, vaccinations=vaccinations, medical_documents=medical_documents, technical_skills=technical_skills, soft_skills=soft_skills, skill_tools=skill_tools, languages=languages) }}

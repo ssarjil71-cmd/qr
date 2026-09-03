@@ -9,8 +9,8 @@
 
     <div class="emergency-person">
       <div class="premium-avatar">
-        {% if user.photo %}
-        <img src="{{ url_for('user.uploads', filename=user.photo.replace('static/uploads/', '')) }}" alt="{{ user.name }}">
+        {% if photo_filename %}
+        <img src="{{ url_for('user.uploads', filename=photo_filename) }}" alt="{{ user.name }}">
         {% else %}
         {{ (user.name or 'QR')[:2].upper() }}
         {% endif %}

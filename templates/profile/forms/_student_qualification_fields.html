@@ -1,0 +1,38 @@
+<div class="col-md-6">
+  <label class="form-label">Qualification / Degree</label>
+  <input class="form-control" name="qualification" required value="{{ qualification.qualification if qualification is defined else '' }}" placeholder="e.g. Diploma, B.Tech, HSC / 12th">
+</div>
+<div class="col-md-6">
+  <label class="form-label">Specialization / Branch</label>
+  <input class="form-control" name="specialization" value="{{ qualification.specialization if qualification is defined else '' }}" placeholder="e.g. Computer Engineering">
+</div>
+<div class="col-md-6">
+  <label class="form-label">Institution / College / University</label>
+  <input class="form-control" name="institution" required value="{{ qualification.institution if qualification is defined else '' }}">
+</div>
+<div class="col-md-6">
+  <label class="form-label">Board / University</label>
+  <input class="form-control" name="board_university" value="{{ qualification.board_university if qualification is defined else '' }}">
+</div>
+<div class="col-md-6">
+  <label class="form-label">Passing Year</label>
+  <input class="form-control" type="number" name="passing_year" min="1000" max="9999" value="{{ qualification.passing_year if qualification is defined else '' }}" placeholder="e.g. 2023">
+</div>
+<div class="col-md-6">
+  <label class="form-label">Percentage / CGPA</label>
+  <input class="form-control" name="percentage_cgpa" value="{{ qualification.percentage_cgpa if qualification is defined else '' }}" placeholder="e.g. 78% or 8.2 CGPA">
+</div>
+<div class="col-md-6">
+  <label class="form-label">Grade / Class</label>
+  <input class="form-control" name="grade_class" value="{{ qualification.grade_class if qualification is defined else '' }}" placeholder="e.g. First Class">
+</div>
+<div class="col-md-6">
+  <label class="form-label">Qualification Type</label>
+  <select class="form-select" name="qualification_type">
+    {% set selected_type = qualification.qualification_type if qualification is defined else '' %}
+    <option value="">Select type</option>
+    {% for type in ['Degree', 'Diploma', 'Certificate', 'School', 'ITI', 'Other'] %}
+    <option value="{{ type }}" {% if selected_type == type %}selected{% endif %}>{{ type }}</option>
+    {% endfor %}
+  </select>
+</div>
