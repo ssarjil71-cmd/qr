@@ -121,6 +121,46 @@ class UserModel:
         return row
 
     @staticmethod
+    def find_emergency_contact_by_id(uid):
+        db_conn, cur = UserModel._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT name, user_type, photo, blood_group, emergency_contact,
+                       emergency_primary_contact_name,
+                       emergency_primary_contact_relation,
+                       emergency_primary_contact_mobile,
+                       emergency_primary_contact_whatsapp,
+                       emergency_secondary_contact_name,
+                       emergency_secondary_contact_relation,
+                       emergency_secondary_contact_mobile,
+                       emergency_doctor_name, emergency_doctor_phone,
+                       emergency_address, emergency_note
+                FROM users
+                WHERE id=%s
+                ''',
+                (uid,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            keys = (
+                'name', 'user_type', 'photo', 'blood_group', 'emergency_contact',
+                'emergency_primary_contact_name',
+                'emergency_primary_contact_relation',
+                'emergency_primary_contact_mobile',
+                'emergency_primary_contact_whatsapp',
+                'emergency_secondary_contact_name',
+                'emergency_secondary_contact_relation',
+                'emergency_secondary_contact_mobile',
+                'emergency_doctor_name', 'emergency_doctor_phone',
+                'emergency_address', 'emergency_note',
+            )
+            return dict(zip(keys, row))
+        finally:
+            cur.close()
+
+    @staticmethod
     def find_by_qr_token(token):
         db_conn, cur = UserModel._get_conn_and_cursor()
         cur.execute('SELECT * FROM users WHERE qr_token=%s', (token,))

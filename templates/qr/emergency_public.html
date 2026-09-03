@@ -23,7 +23,7 @@
 
     <div class="emergency-call-panel">
       <h2>Call Emergency Contact</h2>
-      {% set primary_phone = user.emergency_primary_contact_mobile or user.emergency_contact %}
+      {% set primary_phone = user.emergency_primary_contact_mobile %}
       {% if primary_phone %}
       <a class="btn premium-primary emergency-call-btn" href="tel:{{ primary_phone }}"><i class="bi bi-telephone-fill"></i> Call {{ primary_phone }}</a>
       {% else %}
