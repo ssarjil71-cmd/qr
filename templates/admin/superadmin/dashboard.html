@@ -30,11 +30,6 @@
     color: var(--text-primary);
   }
 
-  .page-subtitle {
-    font-size: 15px;
-    color: var(--text-secondary);
-  }
-
   .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
@@ -210,11 +205,10 @@
 </style>
 
 <!-- ====== Page Header ====== -->
-<div class="page-header">
+<!-- <div class="page-header">
   <div>
     <div class="eyebrow">Good Afternoon, {{ session.get('user_name', 'Super Admin') }} 👋</div>
     <h1 class="page-title">Super Admin Dashboard</h1>
-    <p class="page-subtitle">Manage organizations, QR cards, users, and subscriptions.</p>
   </div>
   <div class="dashboard-actions">
     <a class="btn btn-primary" href="{{ url_for('superadmin.organization_create') }}">
@@ -227,7 +221,7 @@
       <i class="bi bi-arrow-clockwise me-2"></i>Refresh
     </a>
   </div>
-</div>
+</div> -->
 
 <!-- ====== Stats Cards Grid ====== -->
 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3">

@@ -320,6 +320,9 @@ class EmployeeProfileModel(StudentProfileModel):
             resume_profile=resume_profile,
             social_links=social_links,
         )
+        visible_section_keys = cls.get_visible_section_keys(user_id, 'employee')
+        for section in sections:
+            section['public_visible'] = section['key'] in visible_section_keys
         overall_completion = round(sum(section['completion'] for section in sections) / len(sections)) if sections else 0
         return {
             'user': user,
@@ -330,6 +333,7 @@ class EmployeeProfileModel(StudentProfileModel):
             'resume_profile': resume_profile or {},
             'social_links': social_links,
             'sections': sections,
+            'visible_section_keys': visible_section_keys,
             'overall_completion': overall_completion,
         }
 

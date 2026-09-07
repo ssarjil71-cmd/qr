@@ -5,7 +5,6 @@
   .enterprise-page { display: grid; gap: 24px; }
   .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
   .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
-  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
   .enterprise-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
   .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
   .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
@@ -33,7 +32,6 @@
   <div class="enterprise-header">
     <div>
       <h1 class="enterprise-title">{% if org %}Edit{% else %}Create{% endif %} Organization</h1>
-      <p class="enterprise-subtitle">Capture organization identity, contact details, location, and platform status.</p>
     </div>
     <div class="enterprise-actions">
       <a class="btn enterprise-btn" href="{{ url_for('superadmin.organizations_list') }}"><i class="bi bi-arrow-left me-2"></i>Back</a>

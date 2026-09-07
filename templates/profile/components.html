@@ -66,17 +66,17 @@
 </div>
 {% endmacro %}
 
-{% macro section_card(section, profile_type, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None) %}
+{% macro section_card(section, profile_type, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None, section_url=None) %}
 <div class="col-12 col-sm-6 col-xl-4">
   <div class="summary-card-wrap">
-    <a class="summary-section-card profile-section-{{ section.key }} {% if section.public_visible %}is-visible{% else %}is-hidden{% endif %}" href="{{ url_for('employee.employee_section_detail', section_key=section.key) if profile_type == 'employee' else url_for('user.student_section_detail', section_key=section.key) }}">
+    <a class="summary-section-card profile-section-{{ section.key }} {% if profile_type in ['student', 'employee'] and section.public_visible %}is-visible{% elif profile_type in ['student', 'employee'] %}is-hidden{% endif %}" href="{{ section_url or (url_for('employee.employee_section_detail', section_key=section.key) if profile_type == 'employee' else url_for('user.student_section_detail', section_key=section.key)) }}">
       <span class="summary-section-title">{{ section.title }}</span>
       <span class="summary-section-value">
         {% if section.key == 'projects' %}{{ projects|length }}{% elif section.key == 'certificates' %}{{ certificates|length }}{% elif section.key == 'upload_documents' %}{{ uploaded_documents|length }}{% elif section.key == 'social_links' %}{{ social_links|length }}{% elif section.key == 'work_experience' %}{{ experiences|length }}{% else %}{{ section.completion }}%{% if section.completion == 100 %} ✓{% endif %}{% endif %}
       </span>
       <span class="summary-section-chevron">&gt;</span>
     </a>
-    {% if profile_type == 'student' %}
+    {% if profile_type in ['student', 'employee'] %}
     <form method="post" action="{{ url_for('user.update_student_section_visibility', section_key=section.key) }}" class="summary-visibility-form">
       <div class="summary-visibility-status {% if section.public_visible %}is-visible{% else %}is-hidden{% endif %}">
         <i class="bi {% if section.public_visible %}bi-eye-fill{% else %}bi-eye-slash-fill{% endif %} summary-visibility-icon" aria-hidden="true"></i>

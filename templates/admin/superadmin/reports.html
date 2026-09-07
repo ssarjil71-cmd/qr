@@ -5,7 +5,6 @@
   .enterprise-page { display: grid; gap: 24px; }
   .enterprise-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
   .enterprise-title { margin: 0; color: var(--text-primary); font-size: var(--fs-title); font-weight: 800; }
-  .enterprise-subtitle { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
   .enterprise-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
   .enterprise-btn { min-height: 48px; padding: 12px 18px; border-radius: 12px; border: 1px solid var(--border-color); background: #fff; color: var(--text-primary); font-weight: 700; transition: var(--transition-fast); }
   .enterprise-btn:hover { border-color: rgba(37, 99, 235, .35); color: var(--primary-color); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15, 23, 42, .08); }
@@ -20,7 +19,6 @@
   .chart-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 16px; }
   .chart-card { min-height: 260px; padding: 20px; border: 1px solid var(--border-color); border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
   .chart-title { margin: 0; color: var(--text-primary); font-size: 18px; font-weight: 800; }
-  .chart-subtitle { margin: 4px 0 18px; color: var(--text-secondary); font-size: 13px; }
   .chart-bars { display: flex; align-items: end; gap: 12px; height: 150px; padding-top: 16px; }
   .chart-bar { flex: 1; min-width: 20px; border-radius: 10px 10px 0 0; background: linear-gradient(180deg, #60A5FA, #2563EB); }
   .insight-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
@@ -52,7 +50,6 @@
   <div class="enterprise-header">
     <div>
       <h1 class="enterprise-title">Reports</h1>
-      <p class="enterprise-subtitle">Review QR scan activity, user access patterns, and recent platform events.</p>
     </div>
     <div class="enterprise-actions">
       <button class="btn enterprise-btn" type="button"><i class="bi bi-filetype-pdf me-2"></i>Export PDF</button>
@@ -85,7 +82,6 @@
   <div class="chart-grid">
     <div class="chart-card">
       <h2 class="chart-title">Scan Activity</h2>
-      <p class="chart-subtitle">Recent activity visualization based on available scan rows.</p>
       <div class="chart-bars" aria-label="Scan activity chart">
         <div class="chart-bar" style="height: 42%;"></div>
         <div class="chart-bar" style="height: 58%;"></div>
@@ -98,7 +94,6 @@
     </div>
     <div class="chart-card">
       <h2 class="chart-title">Report Insights</h2>
-      <p class="chart-subtitle">Operational summary from the current dataset.</p>
       <ul class="insight-list">
         <li class="insight-item"><span>Total records</span><strong>{{ scan_rows|length }}</strong></li>
         <li class="insight-item"><span>Latest scope</span><strong>50 rows</strong></li>

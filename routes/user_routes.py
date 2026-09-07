@@ -15,6 +15,7 @@ from models.student_profile import (
     SocialLinkModel,
     StudentProfileModel,
 )
+from models.employee_profile import EmployeeProfileModel
 from services.profile_engine import ProfileEngine
 from services.db import get_conn
 from models.card_permission import CardPermissionModel, card_permission_required
@@ -433,19 +434,24 @@ def delete_student_medical_document(document_id):
 @login_required
 def update_student_section_visibility(section_key):
     user_id = session.get('user_id')
-    if not StudentProfileModel.has_student_profile(user_id):
+    profile_model = StudentProfileModel
+    profile_type = 'student'
+    if EmployeeProfileModel.has_employee_profile(user_id):
+        profile_model = EmployeeProfileModel
+        profile_type = 'employee'
+    elif not StudentProfileModel.has_student_profile(user_id):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': 'Student profile is not available for this account'}), 403
-        flash('Student profile is not available for this account', 'warning')
+            return jsonify({'success': False, 'message': 'Profile is not available for this account'}), 403
+        flash('Profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
     is_visible = (request.form.getlist('is_visible') or ['0'])[-1] == '1'
-    if not StudentProfileModel.set_section_visibility(user_id, section_key, is_visible):
+    if not profile_model.set_section_visibility(user_id, section_key, is_visible, profile_type=profile_type):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Invalid profile section'}), 400
         flash('Invalid profile section', 'warning')
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True, 'is_visible': is_visible})
-    return redirect(url_for('user.student_dashboard'))
+    return redirect(url_for('employee.employee_dashboard') if profile_type == 'employee' else url_for('user.student_dashboard'))
 
 
 @user_bp.route('/student/profile/academic-information', methods=['POST'])

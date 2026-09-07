@@ -1098,4 +1098,25 @@ def dashboard():
         return redirect(url_for('employee.employee_dashboard'))
     if StudentProfileModel.has_student_profile(session['user_id']):
         return redirect(url_for('user.student_dashboard'))
-    return render_template('auth/dashboard.html', hide_navbar=True, subscription=subscription)
+    user = StudentProfileModel._get_user(session['user_id'])
+    user_record = UserModel.find_by_id(session['user_id'])
+    profile_sections = [
+        {
+            'key': item['label'].lower().replace(' ', '_'),
+            'title': item['label'],
+            'completion': 100 if item['done'] else 0,
+            'public_visible': False,
+            'url': item['view_url'],
+        }
+        for item in _get_profile_checklist(user_record)
+    ]
+    return render_template(
+        'auth/dashboard.html',
+        hide_navbar=True,
+        subscription=subscription,
+        user=user,
+        overall_completion=_get_profile_completion(user_record),
+        profile_dashboard_title=f"{(user.get('user_type') or 'User').replace('_', ' ').title()} Profile Dashboard",
+        profile_dashboard_description='Manage your profile section by section.',
+        profile_sections=profile_sections,
+    )

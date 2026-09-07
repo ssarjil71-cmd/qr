@@ -1,18 +1,11 @@
 {% extends 'base.html' %}
+{% from 'profile/components.html' import profile_header, section_card, section_visibility_script %}
 {% block content %}
-<div class="card shadow-sm mb-4">
-  <div class="card-body">
-    <div class="row align-items-center g-3">
-      <div class="col-md-2">
-        <img class="img-fluid rounded-circle border" src="{{ url_for('static', filename='img/qr-nexid-hero-art.png') }}" alt="QR-NexID">
-      </div>
-      <div class="col-md-10">
-        <h3 class="mb-1">Dashboard</h3>
-        <div class="text-muted">Your profile dashboard</div>
-      </div>
-    </div>
-  </div>
+{{ profile_header(profile_dashboard_title, profile_dashboard_description, user, overall_completion, show_dashboard_nav=False) }}
+<div class="row g-3 profile-section-grid">
+  {% for section in profile_sections %}
+    {{ section_card(section, 'legacy', user, section_url=section.url) }}
+  {% endfor %}
 </div>
-  <p class="mb-0">Welcome {{ session.user_name }}</p>
-</div>
+{{ section_visibility_script() }}
 {% endblock %}

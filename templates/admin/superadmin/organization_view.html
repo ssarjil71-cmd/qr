@@ -47,7 +47,6 @@
   <div class="enterprise-header">
     <div>
       <h1 class="enterprise-title">{{ org.name }}</h1>
-      <p class="enterprise-subtitle">Organization details, primary admin, and branch hierarchy.</p>
     </div>
     <div class="enterprise-actions">
       <a class="btn enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.organization_edit', org_id=org.id) }}"><i class="bi bi-pencil me-2"></i>Edit</a>
@@ -104,7 +103,6 @@
     <div class="data-grid-header px-0 pt-0">
       <div>
         <h2 class="card-title mb-1">Card Configuration</h2>
-        <p class="enterprise-subtitle mb-0">Organization defaults are applied to newly created users unless a user-specific override exists.</p>
       </div>
     </div>
     <form method="post" action="{{ url_for('superadmin.organization_card_configuration', org_id=org.id) }}">
@@ -143,7 +141,6 @@
     <div class="data-grid-header">
       <div>
         <h2 class="card-title mb-1">Branches</h2>
-        <p class="enterprise-subtitle mb-0">Branch, department, and division summary for this organization.</p>
       </div>
       <a class="btn enterprise-btn enterprise-btn-primary" href="{{ url_for('superadmin.branch_create', org_id=org.id) }}"><i class="bi bi-plus-lg me-2"></i>Create Branch</a>
     </div>
