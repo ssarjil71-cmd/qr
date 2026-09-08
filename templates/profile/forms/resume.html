@@ -1,3 +1,14 @@
+{% if profile_type == 'student' and resume_document_form %}
+<form method="post" action="{{ url_for('user.upload_student_resume_document') }}" enctype="multipart/form-data" class="certificate-form">
+  <h5>Resume Document</h5>
+  <p class="certificate-list-subtitle">{{ 'Replace your current resume PDF.' if resume_document_form == 'replace' else 'Upload your latest resume PDF.' }}</p>
+  {% if resume_profile.get('document_path') %}<p class="certificate-description">Current: {{ resume_profile.document_path.split('/')[-1] }}</p>{% endif %}
+  <label class="form-label" for="resume_file">PDF Resume *</label>
+  <input id="resume_file" class="form-control" type="file" name="resume_file" accept="application/pdf,.pdf" required>
+  <div class="form-text">Only PDF files are allowed, up to 5 MB.</div>
+  <div class="certificate-form-actions"><button class="btn btn-primary" type="submit">{{ 'Replace Resume' if resume_document_form == 'replace' else 'Upload Resume' }}</button><a class="btn btn-outline-secondary" href="{{ url_for('user.student_section_detail', section_key='resume') }}">Cancel</a></div>
+</form>
+{% else %}
 <form method="post" action="{{ url_for('employee.update_employee_resume') if profile_type == 'employee' else url_for('user.update_student_resume') }}" class="row g-3 mt-1">
   <div class="col-md-6">
     <label class="form-label">Professional Headline</label>
@@ -39,6 +50,7 @@
     {% endif %}
   </div>
 </form>
-<form method="post" action="{{ url_for('employee.delete_employee_resume') if profile_type == 'employee' else url_for('user.delete_student_resume') }}" class="mt-2">
+{% if profile_type == 'employee' %}<form method="post" action="{{ url_for('employee.delete_employee_resume') }}" class="mt-2">
   <button class="btn btn-outline-danger" type="submit">Delete Resume</button>
-</form>
+ </form>{% endif %}
+{% endif %}

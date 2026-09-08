@@ -1,4 +1,5 @@
-<form method="post" action="{{ url_for('employee.create_employee_certificate') if profile_type == 'employee' else url_for('user.update_student_certificates') }}" class="row g-3 mt-1 border rounded p-3 mb-3">
+{% if profile_type == 'employee' %}
+<form method="post" action="{{ url_for('employee.create_employee_certificate') }}" class="row g-3 mt-1 border rounded p-3 mb-3">
   <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" name="title"></div>
   <div class="col-md-6"><label class="form-label">Issuer</label><input class="form-control" name="issuer"></div>
   <div class="col-md-6"><label class="form-label">Issue Date</label><input type="date" class="form-control" name="issue_date"></div>
@@ -9,9 +10,8 @@
   <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
   <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
 </form>
-
 {% for certificate in certificates %}
-<form method="post" action="{{ url_for('employee.edit_employee_certificate', certificate_id=certificate.id) if profile_type == 'employee' else url_for('user.edit_student_certificate', certificate_id=certificate.id) }}" class="row g-3 border rounded p-3 mb-3">
+<form method="post" action="{{ url_for('employee.edit_employee_certificate', certificate_id=certificate.id) }}" class="row g-3 border rounded p-3 mb-3">
   <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" name="title" value="{{ certificate.title }}"></div>
   <div class="col-md-6"><label class="form-label">Issuer</label><input class="form-control" name="issuer" value="{{ certificate.issuer or '' }}"></div>
   <div class="col-md-6"><label class="form-label">Issue Date</label><input type="date" class="form-control" name="issue_date" value="{{ certificate.issue_date }}"></div>
@@ -20,11 +20,38 @@
   <div class="col-md-6"><label class="form-label">Credential URL</label><input class="form-control" name="credential_url" value="{{ certificate.credential_url or '' }}"></div>
   <div class="col-12"><label class="form-label">Document URL</label><input class="form-control" name="document_url" value="{{ certificate.document_url or '' }}"></div>
   <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ certificate.description or '' }}</textarea></div>
-  <div class="col-12 d-flex gap-2">
-    <button class="btn btn-primary" type="submit">Save</button>
-  </div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Save</button></div>
 </form>
-<form method="post" action="{{ url_for('employee.delete_employee_certificate', certificate_id=certificate.id) if profile_type == 'employee' else url_for('user.delete_student_certificate', certificate_id=certificate.id) }}" class="mb-3">
-  <button class="btn btn-outline-danger btn-sm" type="submit">Delete Certificate</button>
-</form>
+<form method="post" action="{{ url_for('employee.delete_employee_certificate', certificate_id=certificate.id) }}" class="mb-3"><button class="btn btn-outline-danger btn-sm" type="submit">Delete Certificate</button></form>
 {% endfor %}
+{% else %}
+<form method="post" enctype="multipart/form-data" action="{{ url_for('user.update_student_certificates') if certificate_form_mode == 'add' else url_for('user.edit_student_certificate', certificate_id=certificate_form_certificate.id) }}" class="certificate-form" data-certificate-form>
+  <div class="certificate-form-grid">
+    <div><label class="form-label">Title *</label><input class="form-control" name="title" required value="{{ certificate_form_certificate.title if certificate_form_certificate else '' }}"></div>
+    <div><label class="form-label">Issuer *</label><input class="form-control" name="issuer" required value="{{ certificate_form_certificate.issuer if certificate_form_certificate else '' }}"></div>
+    <div><label class="form-label">Issue Date *</label><input id="certificate_issue_date" type="date" class="form-control" name="issue_date" required value="{{ certificate_form_certificate.issue_date if certificate_form_certificate else '' }}"></div>
+    <div><label class="form-label">Expiry Date</label><input id="certificate_expiry_date" type="date" class="form-control" name="expiry_date" value="{{ certificate_form_certificate.expiry_date if certificate_form_certificate else '' }}"></div>
+    <div class="certificate-form-wide"><label class="form-label">Upload Certificate</label><input class="form-control" type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png" data-certificate-file><small class="certificate-file-help" data-file-help>PDF, JPG, JPEG, or PNG up to 5 MB.</small>{% if certificate_form_certificate and certificate_form_certificate.document_path %}<div class="certificate-current-file"><a href="{{ url_for('user.view_student_certificate_document', certificate_id=certificate_form_certificate.id) }}" target="_blank" rel="noopener">View current document</a><label><input type="checkbox" name="remove_document" value="1"> Remove current document</label></div>{% endif %}</div>
+    <div class="certificate-form-wide"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{ certificate_form_certificate.description if certificate_form_certificate else '' }}</textarea></div>
+  </div>
+  <div class="certificate-form-actions"><button class="btn btn-primary" type="submit">{{ 'Update Certificate' if certificate_form_mode == 'edit' else 'Save Certificate' }}</button></div>
+</form>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.querySelector('[data-certificate-form]');
+  var file = document.querySelector('[data-certificate-file]');
+  var help = document.querySelector('[data-file-help]');
+  if (!form || !file) return;
+  file.addEventListener('change', function () {
+    var selected = file.files[0];
+    help.textContent = selected ? selected.name + ' (' + (selected.size / 1024 / 1024).toFixed(2) + ' MB)' : 'PDF, JPG, JPEG, or PNG up to 5 MB.';
+  });
+  form.addEventListener('submit', function (event) {
+    var expiry = document.getElementById('certificate_expiry_date').value;
+    var issue = document.getElementById('certificate_issue_date').value;
+    if (expiry && issue && expiry < issue) { event.preventDefault(); help.textContent = 'Expiry date cannot be earlier than issue date.'; }
+    if (file.files[0] && file.files[0].size > 5 * 1024 * 1024) { event.preventDefault(); help.textContent = 'File size exceeds the allowed limit of 5 MB.'; }
+  });
+});
+</script>
+{% endif %}

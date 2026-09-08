@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="public-profile-page">
+  <header class="public-profile-hero">
+    <div class="public-profile-identity">
+      {% if user.photo %}
+      <img class="public-profile-avatar" src="{{ url_for('user.uploads', filename=user.photo) }}" alt="{{ user.name }} profile photo">
+      {% else %}
+      <div class="public-profile-avatar public-profile-avatar-empty"><i class="bi bi-person"></i></div>
+      {% endif %}
+      <div class="public-profile-copy">
+        <span class="public-profile-eyebrow"><i class="bi bi-patch-check-fill"></i> QR-NexID verified profile</span>
+        <h1>{{ user.name or 'Student Profile' }}</h1>
+        <p>{{ profile_label }}{% if student_profile.get('branch') %} <span>•</span> {{ student_profile.get('branch') }}{% elif student_profile.get('college') %} <span>•</span> {{ student_profile.get('college') }}{% endif %}</p>
+        {% if student_profile.get('bio') %}<div class="public-profile-bio">{{ student_profile.get('bio') }}</div>{% endif %}
+        <div class="public-profile-actions">
+          <button class="public-action-button public-action-primary" type="button" data-share-profile><i class="bi bi-share"></i> Share Profile</button>
+          {% if public_qr_token %}<a class="public-action-button public-action-secondary" href="{{ url_for('user.public_download_student_resume', token=public_qr_token) }}"><i class="bi bi-download"></i> Download Profile</a>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="public-profile-mark"><i class="bi bi-qr-code-scan"></i><span>Digital identity</span></div>
+  </header>
+
+  {% if profile_sections %}
+  <main class="public-section-grid">
+    {% for section in profile_sections %}
+      {% if section.key == 'basic_information' %}
+      <section class="public-section-card public-section-wide">
+        <div class="public-section-heading"><div class="public-section-icon icon-blue"><i class="bi bi-person-vcard"></i></div><div><span class="public-section-kicker">Profile</span><h2>Basic Information</h2></div></div>
+        <div class="public-info-grid">
+          {% if user.mobile %}<div class="public-info-item"><i class="bi bi-phone"></i><div><small>Mobile</small><strong>{{ user.mobile }}</strong></div></div>{% endif %}
+          {% if user.email %}<div class="public-info-item"><i class="bi bi-envelope"></i><div><small>Email</small><strong>{{ user.email }}</strong></div></div>{% endif %}
+          {% if user.gender %}<div class="public-info-item"><i class="bi bi-gender-ambiguous"></i><div><small>Gender</small><strong>{{ user.gender }}</strong></div></div>{% endif %}
+          {% if user.blood_group %}<div class="public-info-item"><i class="bi bi-droplet"></i><div><small>Blood Group</small><strong>{{ user.blood_group }}</strong></div></div>{% endif %}
+          {% if user.address %}<div class="public-info-item public-info-wide"><i class="bi bi-geo-alt"></i><div><small>Address</small><strong>{{ user.address }}</strong></div></div>{% endif %}
+        </div>
+      </section>
+      {% elif section.key == 'academic_information' and (student_profile.get('college') or student_profile.get('branch') or student_profile.get('year') or student_profile.get('roll_number')) %}
+      <section class="public-section-card public-section-wide">
+        <div class="public-section-heading"><div class="public-section-icon icon-violet"><i class="bi bi-mortarboard"></i></div><div><span class="public-section-kicker">Education</span><h2>Academic Information</h2></div></div>
+        <div class="public-academic-grid">
+          {% if student_profile.get('college') %}<div><small>College / Institution</small><strong>{{ student_profile.get('college') }}</strong></div>{% endif %}
+          {% if student_profile.get('branch') %}<div><small>Course / Branch</small><strong>{{ student_profile.get('branch') }}</strong></div>{% endif %}
+          {% if student_profile.get('year') %}<div><small>Academic Year</small><strong>{{ student_profile.get('year') }}</strong></div>{% endif %}
+          {% if student_profile.get('roll_number') %}<div><small>Roll Number</small><strong>{{ student_profile.get('roll_number') }}</strong></div>{% endif %}
+        </div>
+      </section>
+      {% elif section.key == 'skills' and (technical_skills or soft_skills or skill_tools or languages) %}
+      <section class="public-section-card">
+        <div class="public-section-heading"><div class="public-section-icon icon-orange"><i class="bi bi-stars"></i></div><div><span class="public-section-kicker">Strengths</span><h2>Skills</h2></div></div>
+        {% if technical_skills %}<div class="public-skill-group"><h3>Technical &amp; Professional Skills</h3><div class="public-chip-list">{% for skill in technical_skills %}<span class="public-chip">{{ skill.skill_name }}</span>{% endfor %}</div></div>{% endif %}
+        {% if soft_skills %}<div class="public-skill-group"><h3>Soft Skills</h3><div class="public-chip-list">{% for skill in soft_skills %}<span class="public-chip chip-soft">{{ skill.skill_name }}</span>{% endfor %}</div></div>{% endif %}
+        {% if skill_tools %}<div class="public-skill-group"><h3>Tools &amp; Software</h3><div class="public-chip-list">{% for tool in skill_tools %}<span class="public-chip chip-tool">{{ tool.tool_name }}</span>{% endfor %}</div></div>{% endif %}
+        {% if languages %}<div class="public-skill-group"><h3>Languages</h3><div class="public-chip-list">{% for language in languages %}<span class="public-chip chip-language">{{ language.language_name }}</span>{% endfor %}</div></div>{% endif %}
+      </section>
+      {% elif section.key == 'projects' and projects %}
+      <section class="public-section-card">
+        <div class="public-section-heading"><div class="public-section-icon icon-teal"><i class="bi bi-kanban"></i></div><div><span class="public-section-kicker">Work</span><h2>Projects</h2></div></div>
+        <div class="public-project-list">{% for project in projects %}<article class="public-project-card"><span class="public-project-label">Project {{ '%02d'|format(loop.index) }}</span><h3>{{ project.title }}</h3>{% if project.role_name %}<p>{{ project.role_name }}</p>{% endif %}{% if project.technologies %}<div class="public-project-tech">{{ project.technologies }}</div>{% endif %}{% if project.project_url %}<a class="public-inline-button" href="{{ project.project_url }}" target="_blank" rel="noopener">View Project <i class="bi bi-arrow-up-right"></i></a>{% endif %}</article>{% endfor %}</div>
+      </section>
+      {% elif section.key == 'certificates' and certificates %}
+      <section class="public-section-card">
+        <div class="public-section-heading"><div class="public-section-icon icon-gold"><i class="bi bi-award"></i></div><div><span class="public-section-kicker">Credentials</span><h2>Certificates</h2></div></div>
+        <div class="public-certificate-list">{% for certificate in certificates %}<article class="public-certificate-card"><div class="public-card-badge"><i class="bi bi-award-fill"></i></div><div class="public-card-content"><h3>{{ certificate.title }}</h3><p><small>Issued by</small>{{ certificate.issuer or 'Issuer not provided' }}</p><div class="public-date-row">{% if certificate.issue_date %}<span><small>Issue Date</small>{{ certificate.issue_date }}</span>{% endif %}{% if certificate.expiry_date %}<span><small>Expiry Date</small>{{ certificate.expiry_date }}</span>{% endif %}</div>{% if certificate.description %}<p class="public-muted-copy">{{ certificate.description }}</p>{% endif %}{% if certificate.document_path %}<a class="public-inline-button" href="{{ url_for('auth.public_certificate_document', certificate_id=certificate.id, token=public_qr_token) }}" target="_blank" rel="noopener">View Certificate <i class="bi bi-arrow-up-right"></i></a>{% endif %}</div></article>{% endfor %}</div>
+      </section>
+      {% elif section.key == 'upload_documents' and uploaded_documents %}
+      <section class="public-section-card">
+        <div class="public-section-heading"><div class="public-section-icon icon-blue"><i class="bi bi-file-earmark-text"></i></div><div><span class="public-section-kicker">Documents</span><h2>Uploaded Documents</h2></div></div>
+        <div class="public-document-list">{% for document in uploaded_documents %}<article class="public-document-card"><i class="bi bi-file-earmark-pdf public-document-icon"></i><div><h3>{{ document.title }}</h3><p>{{ document.document_type.replace('_', ' ').title() }}</p>{% if document.created_at %}<small>Uploaded {{ document.created_at.strftime('%d %b %Y') if document.created_at.strftime is defined else document.created_at }}</small>{% endif %}</div>{% if document.document_url %}<a class="public-inline-button" href="{{ document.document_url }}" target="_blank" rel="noopener">View Document <i class="bi bi-arrow-up-right"></i></a>{% elif document.file_path %}<a class="public-inline-button" href="{{ url_for('user.uploads', filename=document.file_path.replace('static/uploads/', '')) }}" target="_blank" rel="noopener">View Document <i class="bi bi-arrow-up-right"></i></a>{% endif %}</article>{% endfor %}</div>
+      </section>
+      {% elif section.key == 'resume' and resume_profile.get('document_path') %}
+      <section class="public-section-card public-section-wide public-resume-card">
+        <div class="public-section-heading"><div class="public-section-icon icon-indigo"><i class="bi bi-file-earmark-person"></i></div><div><span class="public-section-kicker">Professional document</span><h2>Resume</h2></div></div><p class="public-muted-copy">The latest resume document is available to view.</p><div class="public-resume-actions">{% if resume_profile.get('document_url') %}<a class="public-action-button public-action-secondary" href="{{ resume_profile.get('document_url') }}" target="_blank" rel="noopener"><i class="bi bi-link-45deg"></i> Resume Link</a>{% endif %}{% if public_qr_token %}<a class="public-action-button public-action-primary" href="{{ url_for('auth.public_resume_document', token=public_qr_token) }}" target="_blank" rel="noopener"><i class="bi bi-eye"></i> View Resume</a><a class="public-action-button public-action-secondary" href="{{ url_for('user.public_download_student_resume', token=public_qr_token) }}"><i class="bi bi-download"></i> Download Resume</a>{% endif %}</div>
+      </section>
+      {% elif section.key == 'medical_report' and medical_report %}
+      <section class="public-section-card public-section-wide">
+        <div class="public-section-heading"><div class="public-section-icon icon-red"><i class="bi bi-heart-pulse"></i></div><div><span class="public-section-kicker">Wellness</span><h2>Health Information</h2></div></div><div class="public-health-grid">{% if medical_report.get('blood_group') or user.blood_group %}<div><small>Blood Group</small><strong>{{ medical_report.get('blood_group') or user.blood_group }}</strong></div>{% endif %}{% if medical_report.get('height') %}<div><small>Height</small><strong>{{ medical_report.get('height') }} cm</strong></div>{% endif %}{% if medical_report.get('weight') %}<div><small>Weight</small><strong>{{ medical_report.get('weight') }} kg</strong></div>{% endif %}{% if medical_report.get('bmi') %}<div><small>BMI</small><strong>{{ medical_report.get('bmi') }}</strong></div>{% endif %}{% if medical_report.get('blood_pressure') %}<div><small>Blood Pressure</small><strong>{{ medical_report.get('blood_pressure') }}</strong></div>{% endif %}{% if medical_report.get('pulse_rate') %}<div><small>Pulse Rate</small><strong>{{ medical_report.get('pulse_rate') }}</strong></div>{% endif %}</div>{% if medical_documents %}<div class="public-health-documents"><h3>Medical Documents</h3>{% for document in medical_documents %}{% if document.file_path %}<a class="public-inline-button" href="{{ url_for('user.uploads', filename=document.file_path.replace('static/uploads/', '')) }}" target="_blank" rel="noopener">{{ document.document_name }} <i class="bi bi-arrow-up-right"></i></a>{% endif %}{% endfor %}</div>{% endif %}
+      </section>
+      {% endif %}
+    {% endfor %}
+  </main>
+  {% else %}<div class="public-empty-state"><i class="bi bi-person-lines-fill"></i><h2>Profile details are private</h2><p>No public profile sections have been selected.</p></div>{% endif %}
+  <footer class="public-profile-footer"><span>Powered by QR-NexID</span><span><i class="bi bi-shield-check"></i> Shared securely</span></footer>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var shareButton = document.querySelector('[data-share-profile]');
+    if (!shareButton) return;
+    shareButton.addEventListener('click', function () {
+      var shareData = { title: 'QR-NexID Profile', text: 'View this QR-NexID profile', url: window.location.href };
+      if (navigator.share) navigator.share(shareData);
+      else if (navigator.clipboard) { navigator.clipboard.writeText(window.location.href); shareButton.innerHTML = '<i class="bi bi-check2"></i> Link Copied'; }
+    });
+  });
+</script>
+{% endblock %}

@@ -92,7 +92,7 @@
 </div>
 {% endmacro %}
 
-{% macro detail_rows(section, user, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None, qualifications=None) %}
+{% macro detail_rows(section, user, profile_type=None, student_profile=None, employee_profile=None, projects=None, certificates=None, uploaded_documents=None, resume_profile=None, resume_document_form=None, social_links=None, experiences=None, medical_report=None, medicines=None, vaccinations=None, medical_documents=None, technical_skills=None, soft_skills=None, skill_tools=None, languages=None, qualifications=None) %}
 {% if section.key == 'basic_information' %}
   <div class="detail-row"><span>Name</span><strong>{{ user.name or '-' }}</strong></div>
   <div class="detail-row"><span>Mobile</span><strong>{{ user.mobile or '-' }}</strong></div>
@@ -224,11 +224,11 @@
     <div><strong>{{ skill_tools|length }}</strong><span>Tools</span></div>
     <div><strong>{{ languages|length }}</strong><span>Languages</span></div>
   </div>
-  <div class="detail-section"><span class="detail-section-title">Technical Skills</span></div>
+  <div class="detail-section"><span class="detail-section-title">Technical & Professional Skills</span></div>
   {% if technical_skills %}
     <div class="skill-card-grid">
     {% for skill in technical_skills %}
-      <div class="skill-display-card"><strong>{{ skill.skill_name }}</strong><span>{{ skill.skill_category }}</span><span>{{ skill.proficiency_level }}{% if skill.years_experience %} | {{ skill.years_experience }} Years{% endif %}</span></div>
+      <div class="skill-display-card"><strong>{{ skill.skill_name }}</strong><span>{{ skill.skill_category }}</span><span>{{ skill.proficiency_level }}{% if skill.years_experience is not none and skill.years_experience != '' %} | {{ skill.years_experience }} Years{% endif %}</span></div>
     {% endfor %}
     </div>
   {% else %}
@@ -244,7 +244,7 @@
   {% if skill_tools %}
     <div class="skill-card-grid">
     {% for tool in skill_tools %}
-      <div class="skill-display-card"><strong>{{ tool.tool_name }}</strong><span>{{ tool.proficiency_level or '-' }}{% if tool.years_experience %} | {{ tool.years_experience }} Years{% endif %}</span></div>
+      <div class="skill-display-card"><strong>{{ tool.tool_name }}</strong><span>{{ tool.proficiency_level or '-' }}{% if tool.years_experience is not none and tool.years_experience != '' %} | {{ tool.years_experience }} Years{% endif %}</span></div>
     {% endfor %}
     </div>
   {% else %}
@@ -272,6 +272,21 @@
     <div class="empty-card-text">No projects added.</div>
   {% endif %}
 {% elif section.key == 'certificates' %}
+  {% if profile_type == 'student' %}
+  <div class="certificate-list-head"><div><span class="detail-section-title">Your certificates</span><p class="certificate-list-subtitle">Keep credentials and supporting documents together.</p></div><a class="btn btn-primary" href="{{ url_for('user.student_section_detail', section_key='certificates', certificate_form='add') }}">Add Certificate</a></div>
+  {% if certificates %}
+    <div class="certificate-card-grid">
+    {% for certificate in certificates %}
+      <article class="certificate-card">
+        <div class="certificate-card-top"><div><h4>{{ certificate.title }}</h4><p>{{ certificate.issuer or 'Issuer not provided' }}</p></div><span class="certificate-status {{ 'is-ready' if certificate.document_path else 'is-missing' }}">{{ 'Document available' if certificate.document_path else 'No document' }}</span></div>
+        <div class="certificate-meta"><span><b>Issued</b>{{ certificate.issue_date or '-' }}</span><span><b>Expires</b>{{ certificate.expiry_date or 'No expiry' }}</span></div>
+        {% if certificate.description %}<p class="certificate-description">{{ certificate.description }}</p>{% endif %}
+        <div class="certificate-actions">{% if certificate.document_path %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('user.view_student_certificate_document', certificate_id=certificate.id) }}" target="_blank" rel="noopener">View</a>{% endif %}<a class="btn btn-sm btn-primary" href="{{ url_for('user.student_section_detail', section_key='certificates', certificate_form='edit', certificate_id=certificate.id) }}">Edit</a><form method="post" action="{{ url_for('user.delete_student_certificate', certificate_id=certificate.id) }}" onsubmit="return confirm('Delete this certificate and its document?');"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form></div>
+      </article>
+    {% endfor %}
+    </div>
+  {% else %}<div class="empty-card-text">No certificates added yet.</div>{% endif %}
+  {% else %}
   {% if certificates %}
     {% for certificate in certificates %}
       <div class="detail-list-item">
@@ -282,7 +297,23 @@
   {% else %}
     <div class="empty-card-text">No certificates added.</div>
   {% endif %}
+  {% endif %}
 {% elif section.key == 'upload_documents' %}
+  {% if profile_type == 'student' %}
+  <div class="certificate-list-head"><div><span class="detail-section-title">Uploaded documents</span><p class="certificate-list-subtitle">Store each academic or identity document separately.</p></div><a class="btn btn-primary" href="{{ url_for('user.student_section_detail', section_key='upload_documents', document_form='add') }}">+ Add Document</a></div>
+  {% if uploaded_documents %}
+    <div class="certificate-card-grid">
+    {% for document in uploaded_documents %}
+      <article class="certificate-card">
+        <div class="certificate-card-top"><div><h4>{{ document.document_type.replace('_', ' ').title() }}</h4><p>{{ document.title }}</p></div><span class="certificate-status is-ready">PDF available</span></div>
+        {% if document.notes %}<p class="certificate-description">{{ document.notes }}</p>{% endif %}
+        {% if document.created_at %}<div class="certificate-meta"><span><b>Uploaded</b>{{ document.created_at.strftime('%d %b %Y') if document.created_at.strftime is defined else document.created_at }}</span></div>{% endif %}
+        <div class="certificate-actions">{% if document.file_path %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('user.uploads', filename=document.file_path.replace('static/uploads/', '')) }}" target="_blank" rel="noopener">View PDF</a>{% endif %}<a class="btn btn-sm btn-primary" href="{{ url_for('user.student_section_detail', section_key='upload_documents', document_form='edit', document_id=document.id) }}">Edit</a><form method="post" action="{{ url_for('user.delete_student_document', document_id=document.id) }}" onsubmit="return confirm('Delete this document?');"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form></div>
+      </article>
+    {% endfor %}
+    </div>
+  {% else %}<div class="empty-card-text">No documents uploaded yet.</div>{% endif %}
+  {% else %}
   {% if uploaded_documents %}
     {% for document in uploaded_documents %}
       <div class="detail-list-item">
@@ -299,8 +330,18 @@
   {% else %}
     <div class="empty-card-text">No PDF documents uploaded.</div>
   {% endif %}
+  {% endif %}
 {% elif section.key == 'resume' %}
-  <div class="resume-preview">
+  <div class="certificate-card resume-document-card">
+    <div class="certificate-card-top"><div><h4>Resume Document</h4><p>Upload your latest resume PDF.</p></div>{% if resume_profile.get('document_path') %}<span class="certificate-status is-ready">PDF available</span>{% endif %}</div>
+    {% if resume_profile.get('document_path') %}
+      <p class="certificate-description">{{ resume_profile.document_path.split('/')[-1] }}</p>
+      <div class="certificate-actions"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('user.view_student_resume_document') if profile_type == 'student' else resume_profile.document_url }}" target="_blank" rel="noopener">View Resume</a><a class="btn btn-sm btn-primary" href="{{ url_for('user.student_section_detail', section_key='resume', resume_document_form='replace') if profile_type == 'student' else '#' }}">Replace Resume</a><form method="post" action="{{ url_for('user.delete_student_resume_document') if profile_type == 'student' else '#' }}" onsubmit="return confirm('Delete the uploaded resume?');"><button class="btn btn-sm btn-outline-danger" type="submit">Delete Resume</button></form></div>
+    {% else %}
+      <p class="certificate-description">No resume uploaded yet.</p><a class="btn btn-sm btn-primary" href="{{ url_for('user.student_section_detail', section_key='resume', resume_document_form='upload') if profile_type == 'student' else '#' }}">+ Upload Resume</a>
+    {% endif %}
+  </div>
+  {% if profile_type != 'student' %}<div class="resume-preview">
     <div class="resume-preview-head">
       <h4>{{ user.name or 'Your Name' }}</h4>
       <p>{{ resume_profile.get('headline') or resume_profile.get('preferred_role') or 'Professional Resume' }}</p>
@@ -336,7 +377,7 @@
       <a class="detail-download-link" href="{{ resume_profile.get('document_url') }}" target="_blank" rel="noopener">Open Link</a>
       {% endif %}
     </div>
-  </div>
+  </div>{% endif %}
 {% elif section.key == 'social_links' %}
   {% if social_links %}
     {% for link in social_links %}

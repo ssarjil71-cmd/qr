@@ -1,6 +1,8 @@
 import os
 import textwrap
+from datetime import date
 from io import BytesIO
+from urllib.parse import urlparse
 
 from flask import Blueprint, render_template, request, current_app, send_file, send_from_directory, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
@@ -30,6 +32,71 @@ def _clean_photo(value):
     if cleaned.startswith('static/uploads/'):
         cleaned = cleaned.replace('static/uploads/', '', 1)
     return cleaned
+
+
+CERTIFICATE_ALLOWED_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png'}
+CERTIFICATE_ALLOWED_MIMETYPES = {
+    '.pdf': {'application/pdf', 'application/x-pdf'},
+    '.jpg': {'image/jpeg'},
+    '.jpeg': {'image/jpeg'},
+    '.png': {'image/png'},
+}
+CERTIFICATE_MAX_FILE_SIZE = 5 * 1024 * 1024
+
+
+def _certificate_file_info(file_storage):
+    if not file_storage or not file_storage.filename:
+        return None, 'Please choose a certificate document.'
+    extension = os.path.splitext(file_storage.filename)[1].lower()
+    if extension not in CERTIFICATE_ALLOWED_EXTENSIONS or file_storage.mimetype not in CERTIFICATE_ALLOWED_MIMETYPES[extension]:
+        return None, 'Invalid file type. Upload a PDF, JPG, JPEG, or PNG file.'
+    stream = file_storage.stream
+    stream.seek(0, os.SEEK_END)
+    size = stream.tell()
+    stream.seek(0)
+    if size > CERTIFICATE_MAX_FILE_SIZE:
+        return None, 'File size exceeds the allowed limit of 5 MB.'
+    return extension, None
+
+
+def _remove_certificate_file(file_path):
+    if not file_path:
+        return
+    relative_path = str(file_path).replace('\\', '/').replace('static/uploads/', '', 1)
+    upload_root = os.path.realpath(current_app.config['UPLOAD_FOLDER'])
+    full_path = os.path.realpath(os.path.join(upload_root, relative_path))
+    if os.path.commonpath([upload_root, full_path]) == upload_root and os.path.isfile(full_path):
+        os.remove(full_path)
+
+
+def _certificate_payload_from_request():
+    title = (request.form.get('title') or '').strip()
+    issuer = (request.form.get('issuer') or '').strip()
+    issue_date = (request.form.get('issue_date') or '').strip()
+    expiry_date = (request.form.get('expiry_date') or '').strip()
+    credential_url = (request.form.get('credential_url') or '').strip()
+    if not title or not issuer or not issue_date:
+        return None, 'Title, issuer, and issue date are required.'
+    try:
+        issue = date.fromisoformat(issue_date)
+        expiry = date.fromisoformat(expiry_date) if expiry_date else None
+    except ValueError:
+        return None, 'Enter valid issue and expiry dates.'
+    if expiry and expiry < issue:
+        return None, 'Expiry date cannot be earlier than issue date.'
+    if credential_url:
+        parsed = urlparse(credential_url)
+        if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+            return None, 'Enter a valid credential URL.'
+    return {
+        'title': title,
+        'issuer': issuer,
+        'issue_date': issue_date,
+        'expiry_date': expiry_date,
+        'credential_id': (request.form.get('credential_id') or '').strip(),
+        'credential_url': credential_url,
+        'description': (request.form.get('description') or '').strip(),
+    }, None
 
 
 def _pdf_escape(value):
@@ -149,6 +216,8 @@ def profile(user_id):
 
 @user_bp.route('/uploads/<path:filename>')
 def uploads(filename):
+    if str(filename).replace('\\', '/').startswith('certificate_documents/'):
+        return 'Not found', 404
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
 
@@ -226,7 +295,36 @@ def student_section_detail(section_key):
     if not section:
         flash('Profile section not found', 'warning')
         return redirect(url_for('user.student_dashboard'))
-    return render_template('profile/section_detail.html', section=section, **data)
+    certificate_form_mode = request.args.get('certificate_form') if section_key == 'certificates' else None
+    certificate_form_certificate = None
+    if certificate_form_mode == 'edit':
+        certificate_id = request.args.get('certificate_id', type=int)
+        certificate_form_certificate = next(
+            (item for item in data.get('certificates', []) if item.get('id') == certificate_id),
+            None,
+        )
+        if not certificate_form_certificate:
+            flash('Certificate not found', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='certificates'))
+    document_form_mode = request.args.get('document_form') if section_key == 'upload_documents' else None
+    document_form_document = None
+    resume_document_form = request.args.get('resume_document_form') if section_key == 'resume' else None
+    if document_form_mode == 'edit':
+        document_id = request.args.get('document_id', type=int)
+        document_form_document = DocumentModel.get_by_id(user_id, document_id)
+        if not document_form_document or document_form_document.get('document_type') == 'certificate':
+            flash('Document not found', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='upload_documents'))
+    return render_template(
+        'profile/section_detail.html',
+        section=section,
+        certificate_form_mode=certificate_form_mode,
+        certificate_form_certificate=certificate_form_certificate,
+        document_form_mode=document_form_mode,
+        document_form_document=document_form_document,
+        resume_document_form=resume_document_form,
+        **data,
+    )
 
 
 @user_bp.route('/student/profile/basic-information', methods=['POST'])
@@ -556,8 +654,16 @@ def update_student_skills():
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
     categories = {
+        'Technical Skill', 'Professional Skill', 'Soft Skill', 'Communication', 'Language',
+        'Leadership', 'Management', 'Creative Skill', 'Design', 'Business & Entrepreneurship',
+        'Analytical Skill', 'Research', 'Teaching & Training', 'Healthcare & Medical',
+        'Laboratory & Science', 'Agriculture', 'Legal', 'Finance & Accounting',
+        'Marketing & Sales', 'Hospitality & Tourism', 'Sports & Fitness',
+        'Skilled Trade / Vocational', 'Computer & IT', 'Other',
+    }
+    legacy_it_categories = {
         'Programming Language', 'Framework', 'Database', 'Web Technology', 'Mobile Development',
-        'Cloud', 'DevOps', 'Cyber Security', 'Data Science / AI', 'Testing', 'Other',
+        'Cloud', 'DevOps', 'Cyber Security', 'Data Science / AI', 'Testing',
     }
     proficiency_levels = {'Beginner', 'Intermediate', 'Advanced', 'Expert'}
     language_levels = {'Basic', 'Good', 'Excellent', ''}
@@ -582,6 +688,8 @@ def update_student_skills():
     ):
         name = (name or '').strip()
         category = (category or '').strip()
+        if category in legacy_it_categories:
+            category = 'Computer & IT'
         proficiency = (proficiency or '').strip()
         years = clean_years(years)
         if not any([name, category, proficiency, years]):
@@ -706,24 +814,40 @@ def update_student_certificates():
     if not StudentProfileModel.has_student_profile(user_id):
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
-    title = (request.form.get('title') or '').strip()
-    if not title:
-        flash('Certificate title is required', 'warning')
+    payload, error = _certificate_payload_from_request()
+    if error:
+        flash(error, 'warning')
         return redirect(url_for('user.student_section_detail', section_key='certificates'))
-    CertificateModel.create(
-        user_id,
-        {
-            'title': title,
-            'issuer': request.form.get('issuer'),
-            'issue_date': request.form.get('issue_date'),
-            'expiry_date': request.form.get('expiry_date'),
-            'credential_id': request.form.get('credential_id'),
-            'credential_url': request.form.get('credential_url'),
-            'document_url': request.form.get('document_url'),
-            'description': request.form.get('description'),
-        },
-    )
-    flash('Certificate created successfully', 'success')
+    document_file = request.files.get('document_file')
+    extension, error = _certificate_file_info(document_file) if document_file and document_file.filename else (None, None)
+    if error:
+        flash(error, 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='certificates', certificate_form='add'))
+    document_id = None
+    saved_path = None
+    if document_file and document_file.filename:
+        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'certificate_documents')
+        os.makedirs(upload_dir, exist_ok=True)
+        filename = f'user_{user_id}_{os.urandom(16).hex()}{extension}'
+        saved_path = os.path.join(upload_dir, filename)
+        document_file.save(saved_path)
+        document_id = DocumentModel.upsert(
+            user_id=user_id,
+            document_type='certificate',
+            title=payload['title'],
+            file_path=os.path.join('static', 'uploads', 'certificate_documents', filename).replace('\\', '/'),
+            notes=payload['description'],
+        )
+        payload['document_id'] = document_id
+    try:
+        CertificateModel.create(user_id, payload)
+    except Exception:
+        if document_id:
+            DocumentModel.delete(user_id, document_id)
+        if saved_path and os.path.isfile(saved_path):
+            os.remove(saved_path)
+        raise
+    flash('Certificate added successfully', 'success')
     return redirect(url_for('user.student_section_detail', section_key='certificates'))
 
 
@@ -735,24 +859,54 @@ def edit_student_certificate(certificate_id):
     if not StudentProfileModel.has_student_profile(user_id):
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
-    title = (request.form.get('title') or '').strip()
-    if not title:
-        flash('Certificate title is required', 'warning')
+    payload, error = _certificate_payload_from_request()
+    if error:
+        flash(error, 'warning')
         return redirect(url_for('user.student_section_detail', section_key='certificates'))
-    updated = CertificateModel.update(
-        user_id,
-        certificate_id,
-        {
-            'title': title,
-            'issuer': request.form.get('issuer'),
-            'issue_date': request.form.get('issue_date'),
-            'expiry_date': request.form.get('expiry_date'),
-            'credential_id': request.form.get('credential_id'),
-            'credential_url': request.form.get('credential_url'),
-            'document_url': request.form.get('document_url'),
-            'description': request.form.get('description'),
-        },
+    existing = next(
+        (item for item in StudentProfileModel.get_student_dashboard_data(user_id).get('certificates', []) if item.get('id') == certificate_id),
+        None,
     )
+    if not existing:
+        flash('Certificate not found', 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='certificates'))
+    payload['credential_id'] = existing.get('credential_id')
+    payload['credential_url'] = existing.get('credential_url')
+    document_file = request.files.get('document_file')
+    extension, error = _certificate_file_info(document_file) if document_file and document_file.filename else (None, None)
+    if error:
+        flash(error, 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='certificates', certificate_form='edit', certificate_id=certificate_id))
+    old_document_path = existing.get('document_path')
+    old_document_id = existing.get('document_id')
+    saved_path = None
+    if document_file and document_file.filename:
+        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'certificate_documents')
+        os.makedirs(upload_dir, exist_ok=True)
+        filename = f'user_{user_id}_{os.urandom(16).hex()}{extension}'
+        saved_path = os.path.join(upload_dir, filename)
+        document_file.save(saved_path)
+        payload['document_id'] = DocumentModel.upsert(
+            user_id=user_id,
+            document_type='certificate',
+            title=payload['title'],
+            file_path=os.path.join('static', 'uploads', 'certificate_documents', filename).replace('\\', '/'),
+            notes=payload['description'],
+        )
+    elif request.form.get('remove_document') == '1':
+        payload['remove_document'] = True
+    try:
+        updated = CertificateModel.update(user_id, certificate_id, payload)
+    except Exception:
+        if payload.get('document_id'):
+            DocumentModel.delete(user_id, payload['document_id'])
+        if saved_path and os.path.isfile(saved_path):
+            os.remove(saved_path)
+        raise
+    if not updated and saved_path and os.path.isfile(saved_path):
+        os.remove(saved_path)
+    if updated and (payload.get('document_id') or payload.get('remove_document')):
+        _remove_certificate_file(old_document_path)
     flash('Certificate updated successfully' if updated else 'Certificate not found', 'success' if updated else 'warning')
     return redirect(url_for('user.student_section_detail', section_key='certificates'))
 
@@ -765,9 +919,32 @@ def delete_student_certificate(certificate_id):
     if not StudentProfileModel.has_student_profile(user_id):
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
+    existing = next(
+        (item for item in StudentProfileModel.get_student_dashboard_data(user_id).get('certificates', []) if item.get('id') == certificate_id),
+        None,
+    )
     deleted = CertificateModel.delete(user_id, certificate_id)
+    if deleted and existing:
+        _remove_certificate_file(existing.get('document_path'))
     flash('Certificate deleted successfully' if deleted else 'Certificate not found', 'success' if deleted else 'warning')
     return redirect(url_for('user.student_section_detail', section_key='certificates'))
+
+
+@user_bp.route('/student/profile/certificates/<int:certificate_id>/document')
+@login_required
+@card_permission_required('certificates')
+def view_student_certificate_document(certificate_id):
+    user_id = session.get('user_id')
+    data = StudentProfileModel.get_student_dashboard_data(user_id)
+    certificate = next((item for item in data.get('certificates', []) if item.get('id') == certificate_id), None)
+    if not certificate or not certificate.get('document_path'):
+        return 'Certificate document not found', 404
+    upload_root = os.path.realpath(current_app.config['UPLOAD_FOLDER'])
+    file_path = str(certificate['document_path']).replace('static/uploads/', '').replace('\\', '/')
+    full_path = os.path.realpath(os.path.join(upload_root, file_path))
+    if os.path.commonpath([upload_root, full_path]) != upload_root or not os.path.isfile(full_path):
+        return 'Certificate document not found', 404
+    return send_file(full_path, as_attachment=False, download_name=os.path.basename(full_path))
 
 
 @user_bp.route('/student/profile/upload-documents', methods=['POST'])
@@ -784,6 +961,8 @@ def upload_student_document():
         'domicile': 'Domicile Certificate',
         'nationality': 'Nationality Certificate',
         'mark_sheet': 'Mark Sheet',
+        'aadhaar_card': 'Aadhaar Card',
+        'degree_certificate': 'Degree Certificate',
     }
     document_type = (request.form.get('document_type') or '').strip()
     title = (request.form.get('title') or document_types.get(document_type, '')).strip()
@@ -792,6 +971,9 @@ def upload_student_document():
     if document_type not in document_types:
         flash('Select a valid document type', 'warning')
         return redirect(url_for('user.student_section_detail', section_key='upload_documents'))
+    if not title:
+        flash('Document title is required', 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='upload_documents', document_form='add'))
     if not document_file or not document_file.filename:
         flash('Please choose a PDF document', 'warning')
         return redirect(url_for('user.student_section_detail', section_key='upload_documents'))
@@ -810,14 +992,67 @@ def upload_student_document():
     document_file.save(save_path)
     file_path = os.path.join('static', 'uploads', 'documents', filename).replace('\\', '/')
 
-    DocumentModel.upsert(
-        user_id=user_id,
-        document_type=document_type,
-        title=title or document_types[document_type],
-        file_path=file_path,
-        notes=request.form.get('notes'),
-    )
+    try:
+        DocumentModel.create(
+            user_id=user_id,
+            document_type=document_type,
+            title=title or document_types[document_type],
+            file_path=file_path,
+            notes=request.form.get('notes'),
+        )
+    except Exception:
+        if os.path.isfile(save_path):
+            os.remove(save_path)
+        raise
     flash('Document uploaded successfully', 'success')
+    return redirect(url_for('user.student_section_detail', section_key='upload_documents'))
+
+
+@user_bp.route('/student/profile/upload-documents/<int:document_id>', methods=['POST'])
+@login_required
+@card_permission_required('upload_documents')
+def edit_student_document(document_id):
+    user_id = session.get('user_id')
+    if not StudentProfileModel.has_student_profile(user_id):
+        flash('Student profile is not available for this account', 'warning')
+        return redirect(url_for('auth.dashboard'))
+    existing = DocumentModel.get_by_id(user_id, document_id)
+    if not existing or existing.get('document_type') == 'certificate':
+        flash('Document not found', 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='upload_documents'))
+    document_types = {
+        'caste_certificate': 'Caste Certificate', 'domicile': 'Domicile',
+        'nationality': 'Nationality Certificate', 'mark_sheet': 'Mark Sheet',
+        'aadhaar_card': 'Aadhaar Card', 'degree_certificate': 'Degree Certificate',
+    }
+    document_type = (request.form.get('document_type') or '').strip()
+    title = (request.form.get('title') or '').strip()
+    if document_type not in document_types or not title:
+        flash('Document type and title are required', 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='upload_documents', document_form='edit', document_id=document_id))
+    document_file = request.files.get('document_file')
+    new_path = None
+    new_save_path = None
+    if document_file and document_file.filename:
+        extension = os.path.splitext(document_file.filename)[1].lower()
+        if extension != '.pdf' or document_file.mimetype not in ('application/pdf', 'application/x-pdf'):
+            flash('Only PDF documents are allowed', 'warning')
+            return redirect(url_for('user.student_section_detail', section_key='upload_documents', document_form='edit', document_id=document_id))
+        upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'documents')
+        os.makedirs(upload_dir, exist_ok=True)
+        filename = f'user_{user_id}_{document_type}_{os.urandom(16).hex()}.pdf'
+        new_save_path = os.path.join(upload_dir, filename)
+        document_file.save(new_save_path)
+        new_path = os.path.join('static', 'uploads', 'documents', filename).replace('\\', '/')
+    try:
+        updated = DocumentModel.update(user_id, document_id, document_type, title, request.form.get('notes'), new_path)
+    except Exception:
+        if new_save_path and os.path.isfile(new_save_path):
+            os.remove(new_save_path)
+        raise
+    if updated and new_path:
+        _remove_certificate_file(existing.get('file_path'))
+    flash('Document updated successfully' if updated else 'Document not found', 'success' if updated else 'warning')
     return redirect(url_for('user.student_section_detail', section_key='upload_documents'))
 
 
@@ -829,7 +1064,12 @@ def delete_student_document(document_id):
     if not StudentProfileModel.has_student_profile(user_id):
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
-    deleted = DocumentModel.delete(user_id, document_id)
+    existing = DocumentModel.get_by_id(user_id, document_id)
+    if existing and existing.get('document_type') == 'certificate':
+        existing = None
+    deleted = DocumentModel.delete(user_id, document_id) if existing else False
+    if deleted:
+        _remove_certificate_file(existing.get('file_path'))
     flash('Document deleted successfully' if deleted else 'Document not found', 'success' if deleted else 'warning')
     return redirect(url_for('user.student_section_detail', section_key='upload_documents'))
 
@@ -855,6 +1095,76 @@ def update_student_resume():
         },
     )
     flash('Resume saved successfully', 'success')
+    return redirect(url_for('user.student_section_detail', section_key='resume'))
+
+
+@user_bp.route('/student/profile/resume/document', methods=['POST'])
+@login_required
+@card_permission_required('resume')
+def upload_student_resume_document():
+    user_id = session.get('user_id')
+    if not StudentProfileModel.has_student_profile(user_id):
+        flash('Student profile is not available for this account', 'warning')
+        return redirect(url_for('auth.dashboard'))
+    resume_file = request.files.get('resume_file')
+    if not resume_file or not resume_file.filename:
+        flash('Please choose a PDF resume', 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='resume', resume_document_form='upload'))
+    extension = os.path.splitext(resume_file.filename)[1].lower()
+    if extension != '.pdf' or resume_file.mimetype not in ('application/pdf', 'application/x-pdf'):
+        flash('Only PDF resumes are allowed', 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='resume', resume_document_form='upload'))
+    resume_file.stream.seek(0, os.SEEK_END)
+    file_size = resume_file.stream.tell()
+    resume_file.stream.seek(0)
+    if file_size > 5 * 1024 * 1024:
+        flash('Resume file size exceeds the allowed limit of 5 MB', 'warning')
+        return redirect(url_for('user.student_section_detail', section_key='resume', resume_document_form='upload'))
+    upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'resume_documents')
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f'user_{user_id}_{os.urandom(16).hex()}.pdf'
+    save_path = os.path.join(upload_dir, filename)
+    resume_file.save(save_path)
+    file_path = os.path.join('static', 'uploads', 'resume_documents', filename).replace('\\', '/')
+    try:
+        old_document = ResumeProfileModel.attach_document(user_id, file_path)
+    except Exception:
+        if os.path.isfile(save_path):
+            os.remove(save_path)
+        raise
+    if old_document:
+        _remove_certificate_file(old_document.get('file_path'))
+    flash('Resume uploaded successfully', 'success')
+    return redirect(url_for('user.student_section_detail', section_key='resume'))
+
+
+@user_bp.route('/student/profile/resume/document')
+@login_required
+@card_permission_required('resume')
+def view_student_resume_document():
+    user_id = session.get('user_id')
+    resume = StudentProfileModel._get_resume_profile(user_id)
+    if not resume or not resume.get('document_path'):
+        return 'Resume document not found', 404
+    upload_root = os.path.realpath(current_app.config['UPLOAD_FOLDER'])
+    relative_path = str(resume['document_path']).replace('static/uploads/', '').replace('\\', '/')
+    file_path = os.path.realpath(os.path.join(upload_root, relative_path))
+    if os.path.commonpath([upload_root, file_path]) != upload_root or not os.path.isfile(file_path):
+        return 'Resume document not found', 404
+    return send_file(file_path, as_attachment=False, download_name=os.path.basename(file_path))
+
+
+@user_bp.route('/student/profile/resume/document/delete', methods=['POST'])
+@login_required
+@card_permission_required('resume')
+def delete_student_resume_document():
+    user_id = session.get('user_id')
+    document = ResumeProfileModel.detach_document(user_id)
+    if document:
+        _remove_certificate_file(document.get('file_path'))
+        flash('Resume document deleted successfully', 'success')
+    else:
+        flash('Resume document not found', 'warning')
     return redirect(url_for('user.student_section_detail', section_key='resume'))
 
 
@@ -898,8 +1208,12 @@ def delete_student_resume():
     if not StudentProfileModel.has_student_profile(user_id):
         flash('Student profile is not available for this account', 'warning')
         return redirect(url_for('auth.dashboard'))
-    ResumeProfileModel.delete(user_id)
-    flash('Resume deleted successfully', 'success')
+    document = ResumeProfileModel.detach_document(user_id)
+    if document:
+        _remove_certificate_file(document.get('file_path'))
+        flash('Resume document deleted successfully', 'success')
+    else:
+        flash('Resume document not found', 'warning')
     return redirect(url_for('user.student_section_detail', section_key='resume'))
 
 

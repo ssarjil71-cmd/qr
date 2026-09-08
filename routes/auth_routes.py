@@ -947,7 +947,7 @@ def dashboard_public():
             section for section in data.get('profile_sections', [])
             if section.get('key') in visible_section_keys and section.get('key') != 'emergency_contact'
         ]
-        return render_template('profile/public_dashboard.html', hide_navbar=True, public_qr_token=qr_token, **data)
+        return render_template('profile/public_dashboard_redesign.html', hide_navbar=True, public_qr_token=qr_token, **data)
 
     profile_completion = _get_profile_completion(user)
     checklist = _get_profile_checklist(user)
@@ -960,6 +960,65 @@ def dashboard_public():
         is_public_view=True,
         hide_navbar=True,
     )
+
+
+@auth_bp.route('/dashboard-public/certificates/<int:certificate_id>/document')
+def public_certificate_document(certificate_id):
+    qr_token = (request.args.get('token') or '').strip()
+    if not qr_token:
+        abort(404)
+    user = UserModel.find_by_qr_token(qr_token)
+    if not user:
+        profile_card = QRIdentityModel.find_by_token_and_type(qr_token, QRIdentityModel.PROFILE)
+        if profile_card:
+            user = UserModel.find_by_id(profile_card[1])
+    if not user or user[1] != 'student':
+        abort(404)
+    subscription = SubscriptionService.get_user_subscription_summary(user[0])
+    if not SubscriptionService.is_public_access_allowed(date.today(), subscription.get('subscription_expiry_date') if subscription else None):
+        abort(404)
+    student_data = StudentProfileModel.get_student_dashboard_data(user[0])
+    certificate = next(
+        (item for item in (student_data or {}).get('certificates', []) if item.get('id') == certificate_id),
+        None,
+    )
+    if not certificate or not certificate.get('document_path'):
+        abort(404)
+    upload_root = os.path.realpath(current_app.config['UPLOAD_FOLDER'])
+    relative_path = str(certificate['document_path']).replace('static/uploads/', '').replace('\\', '/')
+    file_path = os.path.realpath(os.path.join(upload_root, relative_path))
+    if os.path.commonpath([upload_root, file_path]) != upload_root or not os.path.isfile(file_path):
+        abort(404)
+    return send_file(file_path, as_attachment=False, download_name=os.path.basename(file_path))
+
+
+@auth_bp.route('/dashboard-public/resume/document')
+def public_resume_document():
+    qr_token = (request.args.get('token') or '').strip()
+    if not qr_token:
+        abort(404)
+    user = UserModel.find_by_qr_token(qr_token)
+    if not user:
+        profile_card = QRIdentityModel.find_by_token_and_type(qr_token, QRIdentityModel.PROFILE)
+        if profile_card:
+            user = UserModel.find_by_id(profile_card[1])
+    if not user or user[1] != 'student':
+        abort(404)
+    subscription = SubscriptionService.get_user_subscription_summary(user[0])
+    if not SubscriptionService.is_public_access_allowed(date.today(), subscription.get('subscription_expiry_date') if subscription else None):
+        abort(404)
+    data = StudentProfileModel.get_student_dashboard_data(user[0])
+    if not data or 'resume' not in data.get('visible_section_keys', set()):
+        abort(404)
+    resume = data.get('resume_profile') or {}
+    if not resume.get('document_path'):
+        abort(404)
+    upload_root = os.path.realpath(current_app.config['UPLOAD_FOLDER'])
+    relative_path = str(resume['document_path']).replace('static/uploads/', '').replace('\\', '/')
+    file_path = os.path.realpath(os.path.join(upload_root, relative_path))
+    if os.path.commonpath([upload_root, file_path]) != upload_root or not os.path.isfile(file_path):
+        abort(404)
+    return send_file(file_path, as_attachment=False, download_name=os.path.basename(file_path))
 
 
 @auth_bp.route('/generate-qr')

@@ -1,28 +1,30 @@
-<form method="post" action="{{ url_for('user.upload_student_document') }}" enctype="multipart/form-data" class="row g-3 mt-1 border rounded p-3 mb-3">
+<form method="post" action="{{ url_for('user.upload_student_document') if document_form_mode == 'add' else url_for('user.edit_student_document', document_id=document_form_document.id) }}" enctype="multipart/form-data" class="row g-3 mt-1 border rounded p-3 mb-3">
   <div class="col-md-6">
     <label class="form-label">Document Type</label>
     <select class="form-select" name="document_type" required>
       <option value="">Select document</option>
-      <option value="caste_certificate">Caste Certificate</option>
-      <option value="domicile">Domicile Certificate</option>
-      <option value="nationality">Nationality Certificate</option>
-      <option value="mark_sheet">Mark Sheet</option>
+      <option value="caste_certificate" {% if document_form_document and document_form_document.document_type == 'caste_certificate' %}selected{% endif %}>Caste Certificate</option>
+      <option value="domicile" {% if document_form_document and document_form_document.document_type == 'domicile' %}selected{% endif %}>Domicile Certificate</option>
+      <option value="nationality" {% if document_form_document and document_form_document.document_type == 'nationality' %}selected{% endif %}>Nationality Certificate</option>
+      <option value="mark_sheet" {% if document_form_document and document_form_document.document_type == 'mark_sheet' %}selected{% endif %}>Mark Sheet</option>
+      <option value="aadhaar_card" {% if document_form_document and document_form_document.document_type == 'aadhaar_card' %}selected{% endif %}>Aadhaar Card</option>
+      <option value="degree_certificate" {% if document_form_document and document_form_document.document_type == 'degree_certificate' %}selected{% endif %}>Degree Certificate</option>
     </select>
   </div>
   <div class="col-md-6">
     <label class="form-label">Title</label>
-    <input class="form-control" name="title" placeholder="Example: Semester 1 Mark Sheet">
+    <input class="form-control" name="title" placeholder="Example: Semester 1 Mark Sheet" required value="{{ document_form_document.title if document_form_document else '' }}">
   </div>
   <div class="col-md-8">
     <label class="form-label">PDF Document</label>
-    <input class="form-control" type="file" name="document_file" accept="application/pdf,.pdf" required>
-    <div class="form-text">Only PDF files are allowed.</div>
+    <input class="form-control" type="file" name="document_file" accept="application/pdf,.pdf" {% if not document_form_document %}required{% endif %}>
+    <div class="form-text">Only PDF files are allowed.{% if document_form_document and document_form_document.file_path %} Leave empty to keep the current PDF.{% endif %}</div>
   </div>
   <div class="col-md-4">
     <label class="form-label">Notes</label>
-    <input class="form-control" name="notes" placeholder="Optional">
+    <input class="form-control" name="notes" placeholder="Optional" value="{{ document_form_document.notes if document_form_document else '' }}">
   </div>
   <div class="col-12">
-    <button class="btn btn-primary" type="submit">Save</button>
+    <button class="btn btn-primary" type="submit">{{ 'Update Document' if document_form_mode == 'edit' else 'Save Document' }}</button>
   </div>
 </form>

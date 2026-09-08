@@ -16,19 +16,32 @@
   </div>
 
   <div class="section-detail-panel" data-inline-section="{{ section.key }}">
-    <div class="section-detail-content" id="section_readonly_{{ section.key }}">
-      {{ detail_rows(section, user, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, social_links=social_links, experiences=experiences, medical_report=medical_report, medicines=medicines, vaccinations=vaccinations, medical_documents=medical_documents, technical_skills=technical_skills, soft_skills=soft_skills, skill_tools=skill_tools, languages=languages, qualifications=qualifications) }}
-    </div>
-    <div class="section-edit-panel d-none" id="section_edit_form_{{ section.key }}">
-      {% include section.form_template %}
-      <div class="section-inline-cancel-row">
-        <button class="btn btn-outline-secondary" type="button" data-inline-cancel>Cancel</button>
+    {% if section.key in ['certificates', 'upload_documents'] and profile_type == 'student' %}
+      <div class="section-detail-content" id="section_readonly_{{ section.key }}">
+        {{ detail_rows(section, user, profile_type=profile_type, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, resume_document_form=resume_document_form, social_links=social_links, experiences=experiences, medical_report=medical_report, medicines=medicines, vaccinations=vaccinations, medical_documents=medical_documents, technical_skills=technical_skills, soft_skills=soft_skills, skill_tools=skill_tools, languages=languages, qualifications=qualifications) }}
       </div>
-    </div>
-    <button class="section-detail-edit-btn" type="button" data-inline-edit aria-expanded="false" aria-controls="section_edit_form_{{ section.key }}">
-      Edit
-    </button>
+      {% if certificate_form_mode or document_form_mode or resume_document_form %}
+        <div class="certificate-form-shell" id="certificate_form">
+          {% include section.form_template %}
+          <a class="btn btn-outline-secondary" href="{{ url_for('user.student_section_detail', section_key=section.key) }}">Cancel</a>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="section-detail-content" id="section_readonly_{{ section.key }}">
+        {{ detail_rows(section, user, profile_type=profile_type, student_profile=student_profile, employee_profile=employee_profile, projects=projects, certificates=certificates, uploaded_documents=uploaded_documents, resume_profile=resume_profile, resume_document_form=resume_document_form, social_links=social_links, experiences=experiences, medical_report=medical_report, medicines=medicines, vaccinations=vaccinations, medical_documents=medical_documents, technical_skills=technical_skills, soft_skills=soft_skills, skill_tools=skill_tools, languages=languages, qualifications=qualifications) }}
+      </div>
+      <div class="section-edit-panel d-none" id="section_edit_form_{{ section.key }}">
+        {% include section.form_template %}
+        <div class="section-inline-cancel-row">
+          <button class="btn btn-outline-secondary" type="button" data-inline-cancel>Cancel</button>
+        </div>
+      </div>
+      <button class="section-detail-edit-btn" type="button" data-inline-edit aria-expanded="false" aria-controls="section_edit_form_{{ section.key }}">
+        Edit
+      </button>
+    {% endif %}
   </div>
+  {% if section.key not in ['certificates', 'upload_documents'] or profile_type != 'student' %}
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       var sectionEl = document.querySelector('[data-inline-section="{{ section.key }}"]');
@@ -56,5 +69,6 @@
       });
     });
   </script>
+  {% endif %}
 </div>
 {% endblock %}

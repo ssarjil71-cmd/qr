@@ -85,7 +85,7 @@
               <div>No medical information added yet.</div>
             {% endif %}
           {% elif section.key == 'skills' %}
-            <div>{{ user.skills or 'No skills added yet.' }}</div>
+            <div>{{ (user.skills or 'No skills added yet.')|replace('Technical Skills:', 'Technical & Professional Skills:') }}</div>
           {% elif section.key == 'projects' %}
             {% if projects %}
               {% for project in projects %}
@@ -102,10 +102,15 @@
           {% elif section.key == 'certificates' %}
             {% if certificates %}
               {% for certificate in certificates %}
-              <div class="mb-2">
+              <div class="mb-3 p-3 border rounded bg-white">
                 <strong>{{ certificate.title }}</strong>
-                <div>{{ certificate.issuer or '' }}</div>
-                {% if certificate.credential_url %}<a href="{{ certificate.credential_url }}" target="_blank" rel="noopener">Credential Link</a>{% endif %}
+                <div><strong>Issuer:</strong> {{ certificate.issuer or '-' }}</div>
+                {% if certificate.issue_date %}<div><strong>Issue Date:</strong> {{ certificate.issue_date }}</div>{% endif %}
+                {% if certificate.expiry_date %}<div><strong>Expiry Date:</strong> {{ certificate.expiry_date }}</div>{% endif %}
+                {% if certificate.credential_id %}<div><strong>Credential ID:</strong> {{ certificate.credential_id }}</div>{% endif %}
+                {% if certificate.credential_url %}<div><strong>Credential URL:</strong> <a href="{{ certificate.credential_url }}" target="_blank" rel="noopener">{{ certificate.credential_url }}</a></div>{% endif %}
+                {% if certificate.description %}<div class="mt-1"><strong>Description:</strong> {{ certificate.description }}</div>{% endif %}
+                {% if certificate.document_path %}<a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('auth.public_certificate_document', certificate_id=certificate.id, token=public_qr_token) }}" target="_blank" rel="noopener">View Certificate</a>{% else %}<div class="text-muted mt-1">No certificate document available</div>{% endif %}
               </div>
               {% endfor %}
             {% else %}
@@ -117,6 +122,8 @@
               <div class="mb-2">
                 <strong>{{ document.title }}</strong>
                 <div class="text-muted small">{{ document.document_type.replace('_', ' ').title() }}</div>
+                {% if document.notes %}<div>{{ document.notes }}</div>{% endif %}
+                {% if document.created_at %}<div class="text-muted small">Uploaded: {{ document.created_at.strftime('%d %b %Y') if document.created_at.strftime is defined else document.created_at }}</div>{% endif %}
                 {% if document.document_url %}
                   <a href="{{ document.document_url }}" target="_blank" rel="noopener">View Document</a>
                 {% elif document.file_path %}
@@ -131,33 +138,11 @@
             {% endif %}
           {% elif section.key == 'resume' %}
             <div class="public-resume">
-              <div class="public-resume-head">
-                <h4>{{ user.name or 'Resume' }}</h4>
-                <p>{{ resume_profile.get('headline') or resume_profile.get('preferred_role') or 'Professional Resume' }}</p>
-                <span>{{ user.email or '-' }} | {{ user.mobile or '-' }}{% if resume_profile.get('current_city') %} | {{ resume_profile.get('current_city') }}{% endif %}</span>
-              </div>
-              <div class="public-resume-section">
-                <strong>Professional Summary</strong>
-                <p>{{ resume_profile.get('summary') or '-' }}</p>
-              </div>
-              <div class="public-resume-section">
-                <strong>Education</strong>
-                <p>{{ student_profile.get('college', '-') or '-' }}{% if student_profile.get('branch') %} | {{ student_profile.get('branch') }}{% endif %}{% if student_profile.get('year') %} | {{ student_profile.get('year') }}{% endif %}</p>
-              </div>
-              <div class="public-resume-section">
-                <strong>Skills</strong>
-                <p>{{ user.skills or '-' }}</p>
-              </div>
-              {% if projects %}
-              <div class="public-resume-section">
-                <strong>Projects</strong>
-                {% for project in projects[:3] %}
-                <p>{{ project.title }}{% if project.technologies %} - {{ project.technologies }}{% endif %}</p>
-                {% endfor %}
-              </div>
-              {% endif %}
               {% if resume_profile.get('document_url') %}
               <a href="{{ resume_profile.get('document_url') }}" target="_blank" rel="noopener">Resume Link</a>
+              {% endif %}
+              {% if resume_profile.get('document_path') and public_qr_token %}
+              <a href="{{ url_for('auth.public_resume_document', token=public_qr_token) }}" target="_blank" rel="noopener">View Resume</a>
               {% endif %}
               {% if public_qr_token %}
               <a href="{{ url_for('user.public_download_student_resume', token=public_qr_token) }}">Download Resume</a>

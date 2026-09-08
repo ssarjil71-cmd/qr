@@ -1,5 +1,6 @@
 {% if profile_type == 'student' %}
-{% set categories = ['Programming Language', 'Framework', 'Database', 'Web Technology', 'Mobile Development', 'Cloud', 'DevOps', 'Cyber Security', 'Data Science / AI', 'Testing', 'Other'] %}
+{% set categories = ['Technical Skill', 'Professional Skill', 'Soft Skill', 'Communication', 'Language', 'Leadership', 'Management', 'Creative Skill', 'Design', 'Business & Entrepreneurship', 'Analytical Skill', 'Research', 'Teaching & Training', 'Healthcare & Medical', 'Laboratory & Science', 'Agriculture', 'Legal', 'Finance & Accounting', 'Marketing & Sales', 'Hospitality & Tourism', 'Sports & Fitness', 'Skilled Trade / Vocational', 'Computer & IT', 'Other'] %}
+{% set legacy_it_categories = ['Programming Language', 'Framework', 'Database', 'Web Technology', 'Mobile Development', 'Cloud', 'DevOps', 'Cyber Security', 'Data Science / AI', 'Testing'] %}
 {% set proficiencies = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] %}
 {% set language_levels = ['Basic', 'Good', 'Excellent'] %}
 {% set soft_options = ['Communication', 'Leadership', 'Teamwork', 'Problem Solving', 'Time Management', 'Presentation', 'Adaptability', 'Critical Thinking', 'Creativity', 'Decision Making', 'Other'] %}
@@ -21,7 +22,7 @@
     {% for skill in technical_skills or [{}] %}
     <div class="row g-2 skill-repeat-row mb-2 align-items-end">
       <div class="col-md-3"><input class="form-control" name="technical_skill_name[]" value="{{ skill.get('skill_name', '') }}" placeholder="Skill Name"></div>
-      <div class="col-md-3"><select class="form-select" name="technical_skill_category[]"><option value="">Skill Category</option>{% for category in categories %}<option value="{{ category }}" {% if skill.get('skill_category') == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><select class="form-select" name="technical_skill_category[]"><option value="">Skill Category</option>{% for category in categories %}<option value="{{ category }}" {% if skill.get('skill_category') == category or (category == 'Computer & IT' and skill.get('skill_category') in legacy_it_categories) %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></div>
       <div class="col-md-3"><select class="form-select" name="technical_proficiency_level[]"><option value="">Proficiency Level</option>{% for level in proficiencies %}<option value="{{ level }}" {% if skill.get('proficiency_level') == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></div>
       <div class="col-md-2"><input type="number" min="0" step="0.1" class="form-control" name="technical_years_experience[]" value="{{ skill.get('years_experience', '') }}" placeholder="Years"></div>
       <div class="col-md-1"><button class="btn btn-outline-danger btn-sm js-remove-skill-row" type="button">Delete</button></div>

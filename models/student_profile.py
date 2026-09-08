@@ -210,6 +210,10 @@ class StudentProfileModel:
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 '''
             )
+            cur.execute('SHOW COLUMNS FROM certificates')
+            certificate_columns = {row[0] for row in cur.fetchall()}
+            if 'document_id' not in certificate_columns:
+                cur.execute('ALTER TABLE certificates ADD COLUMN document_id INT NULL')
             cur.execute(
                 '''
                 CREATE TABLE IF NOT EXISTS resume_profiles (
@@ -783,7 +787,7 @@ class StudentProfileModel:
                 '''
                 SELECT id, document_type, title, file_path, external_url, notes, created_at, updated_at
                 FROM documents
-                WHERE user_id=%s AND document_type IN ('caste_certificate', 'domicile', 'nationality', 'mark_sheet')
+                WHERE user_id=%s AND document_type NOT IN ('certificate', 'resume')
                 ORDER BY created_at DESC, id DESC
                 ''',
                 (user_id,),
@@ -1562,7 +1566,7 @@ class StudentProfileModel:
                 )
             summary_parts = []
             if technical_skills:
-                summary_parts.append('Technical Skills: ' + ', '.join(skill['skill_name'] for skill in technical_skills))
+                summary_parts.append('Technical & Professional Skills: ' + ', '.join(skill['skill_name'] for skill in technical_skills))
             if soft_skills:
                 summary_parts.append('Soft Skills: ' + ', '.join(skill['skill_name'] for skill in soft_skills))
             if skill_tools:
@@ -1828,6 +1832,75 @@ class ProjectModel:
 
 class DocumentModel:
     @staticmethod
+    def create(user_id, document_type, title, file_path, notes=None, external_url=None):
+        StudentProfileModel.ensure_tables()
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                INSERT INTO documents (user_id, document_type, title, file_path, external_url, notes)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ''',
+                (user_id, document_type, title, file_path, external_url, notes),
+            )
+            conn.commit()
+            return cur.lastrowid
+        finally:
+            cur.close()
+
+    @staticmethod
+    def get_by_id(user_id, document_id):
+        StudentProfileModel.ensure_tables()
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            cur.execute(
+                '''
+                SELECT id, document_type, title, file_path, external_url, notes, created_at, updated_at
+                FROM documents
+                WHERE id=%s AND user_id=%s
+                ''',
+                (document_id, user_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                'id': row[0], 'document_type': row[1], 'title': row[2],
+                'file_path': row[3] or '', 'external_url': row[4] or '',
+                'notes': row[5] or '', 'created_at': row[6], 'updated_at': row[7],
+            }
+        finally:
+            cur.close()
+
+    @staticmethod
+    def update(user_id, document_id, document_type, title, notes=None, file_path=None):
+        StudentProfileModel.ensure_tables()
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            if file_path is None:
+                cur.execute(
+                    '''
+                    UPDATE documents
+                    SET document_type=%s, title=%s, notes=%s
+                    WHERE id=%s AND user_id=%s
+                    ''',
+                    (document_type, title, notes, document_id, user_id),
+                )
+            else:
+                cur.execute(
+                    '''
+                    UPDATE documents
+                    SET document_type=%s, title=%s, notes=%s, file_path=%s
+                    WHERE id=%s AND user_id=%s
+                    ''',
+                    (document_type, title, notes, file_path, document_id, user_id),
+                )
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            cur.close()
+
+    @staticmethod
     def upsert(user_id, document_type, title, external_url=None, file_path=None, notes=None, document_id=None):
         StudentProfileModel.ensure_tables()
         conn, cur = StudentProfileModel._get_conn_and_cursor()
@@ -1873,7 +1946,7 @@ class CertificateModel:
     @staticmethod
     def create(user_id, payload):
         StudentProfileModel.ensure_tables()
-        document_id = None
+        document_id = payload.get('document_id')
         document_url = (payload.get('document_url') or '').strip()
         if document_url:
             document_id = DocumentModel.upsert(
@@ -1924,6 +1997,11 @@ class CertificateModel:
                 return False
             document_id = row[0]
             document_url = (payload.get('document_url') or '').strip()
+            replacement_document_id = payload.get('document_id')
+            remove_document = payload.get('remove_document', False)
+            old_document_id = document_id
+            if replacement_document_id:
+                document_id = replacement_document_id
             if document_url:
                 document_id = DocumentModel.upsert(
                     user_id=user_id,
@@ -1933,7 +2011,7 @@ class CertificateModel:
                     notes=payload.get('description'),
                     document_id=document_id,
                 )
-            elif document_id:
+            elif remove_document and document_id:
                 DocumentModel.delete(user_id, document_id)
                 document_id = None
             cur.execute(
@@ -1963,6 +2041,8 @@ class CertificateModel:
                 ),
             )
             conn.commit()
+            if replacement_document_id and old_document_id and old_document_id != replacement_document_id:
+                DocumentModel.delete(user_id, old_document_id)
             StudentProfileModel._sync_legacy_certificates(user_id)
             return True
         finally:
@@ -2001,17 +2081,17 @@ class ResumeProfileModel:
         document_url = (payload.get('document_url') or '').strip()
         headline = payload.get('headline') or 'Resume'
         if document_url:
+            current_document = DocumentModel.get_by_id(user_id, document_id) if document_id else None
             document_id = DocumentModel.upsert(
                 user_id=user_id,
                 document_type='resume',
                 title=headline,
                 external_url=document_url,
+                file_path=current_document.get('file_path') if current_document else None,
                 notes=payload.get('summary'),
                 document_id=document_id,
             )
-        elif document_id:
-            DocumentModel.delete(user_id, document_id)
-            document_id = None
+        # Keep an uploaded resume when the profile form does not include a URL.
 
         conn, cur = StudentProfileModel._get_conn_and_cursor()
         try:
@@ -2061,6 +2141,46 @@ class ResumeProfileModel:
             conn.commit()
             StudentProfileModel._sync_legacy_resume(user_id)
             return True
+        finally:
+            cur.close()
+
+    @staticmethod
+    def attach_document(user_id, file_path, title='Resume'):
+        StudentProfileModel.ensure_tables()
+        existing = StudentProfileModel._get_resume_profile(user_id)
+        old_document = None
+        if existing and existing.get('resume_document_id'):
+            old_document = DocumentModel.get_by_id(user_id, existing['resume_document_id'])
+            DocumentModel.update(user_id, existing['resume_document_id'], 'resume', title, None, file_path)
+            document_id = existing['resume_document_id']
+        else:
+            document_id = DocumentModel.create(user_id, 'resume', title, file_path)
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            if existing:
+                cur.execute('UPDATE resume_profiles SET resume_document_id=%s WHERE user_id=%s', (document_id, user_id))
+            else:
+                cur.execute('INSERT INTO resume_profiles (user_id, resume_document_id) VALUES (%s, %s)', (user_id, document_id))
+            conn.commit()
+            StudentProfileModel._sync_legacy_resume(user_id)
+            return old_document
+        finally:
+            cur.close()
+
+    @staticmethod
+    def detach_document(user_id):
+        StudentProfileModel.ensure_tables()
+        existing = StudentProfileModel._get_resume_profile(user_id)
+        if not existing or not existing.get('resume_document_id'):
+            return None
+        document = DocumentModel.get_by_id(user_id, existing['resume_document_id'])
+        conn, cur = StudentProfileModel._get_conn_and_cursor()
+        try:
+            cur.execute('UPDATE resume_profiles SET resume_document_id=NULL WHERE user_id=%s', (user_id,))
+            cur.execute('DELETE FROM documents WHERE id=%s AND user_id=%s', (existing['resume_document_id'], user_id))
+            conn.commit()
+            StudentProfileModel._sync_legacy_resume(user_id)
+            return document
         finally:
             cur.close()
 
