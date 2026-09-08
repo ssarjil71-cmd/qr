@@ -778,7 +778,6 @@ class StudentProfileModel:
             cur.close()
 
     @classmethod
-    @classmethod
     def _list_uploaded_documents(cls, user_id):
         cls.ensure_tables()
         conn, cur = cls._get_conn_and_cursor()
